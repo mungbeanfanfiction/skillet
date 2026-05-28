@@ -36,7 +36,15 @@ Ask the user to confirm the proposed branch name before creating anything.
 
 ### 2. Pick the worktree location
 
-Default: a sibling directory to the main repo, named `<repo>-<branch-slug>`. So for a repo at `~/development/myapp` on branch `feat/foo`, the worktree would be `~/development/myapp-feat-foo`.
+Default: `<repo-root>/.claude/worktrees/<branch-slug>`, where `<branch-slug>` is the branch name with slashes replaced by hyphens so the directory stays flat. So for a repo on branch `feat/foo`, the worktree would be `<repo-root>/.claude/worktrees/feat-foo`.
+
+Always anchor to the repo root — don't use a bare relative path, since the working directory may be a subdirectory of the repo:
+
+```bash
+ROOT=$(git rev-parse --show-toplevel)
+SLUG=$(echo "<branch-name>" | tr '/' '-')
+WORKTREE="$ROOT/.claude/worktrees/$SLUG"
+```
 
 But check existing convention first:
 
@@ -44,14 +52,17 @@ But check existing convention first:
 git worktree list
 ```
 
-If the repo already keeps worktrees somewhere else (e.g. under a `.worktrees/` subdir), match that.
+If the repo already keeps worktrees somewhere else (e.g. sibling directories, or a `.worktrees/` subdir), match that instead.
 
 Confirm the chosen path with the user before proceeding.
 
 ### 3. Create the worktree
 
+Make sure the worktree dir is ignored so it doesn't pollute the main repo's `git status`. If `git -C "$ROOT" check-ignore .claude/worktrees/` comes up empty, add `.claude/worktrees/` to `$ROOT/.gitignore` (or `$ROOT/.git/info/exclude` to keep the rule uncommitted).
+
 ```bash
-git worktree add <path> -b <branch-name>
+git worktree add "$WORKTREE" -b <branch-name>
+# e.g. branch feat/foo → <repo-root>/.claude/worktrees/feat-foo
 ```
 
 ### 4. Symlink untracked dotfiles from the main repo

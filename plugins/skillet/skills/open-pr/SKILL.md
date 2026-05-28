@@ -124,11 +124,30 @@ Preserve all HTML comments in the template (`<!-- ... -->`) verbatim — many re
 
 ### 7. Derive the PR title
 
-Priority order:
+Use the convention: **`type(plugin): ticket - description`**
 
-1. The linked issue's title, if found, lightly cleaned up (strip leading `[bug]`, `[feat]`, etc., if the repo doesn't use those prefixes in its own PR history)
-2. The most recent commit subject, if there's only one commit
-3. A summary derived from the branch name + commit subjects
+Build each segment:
+
+- **`type`** — a conventional-commit type inferred from the branch prefix or the latest commit subject (`feat/foo` → `feat`, `fix/bar` → `fix`, also `chore`, `docs`, `refactor`, `test`, etc.). Default to `feat` if it can't be determined.
+- **`(plugin)`** — **only if** all the branch's changes fall under a single plugin directory. Detect it from the changed files:
+
+  ```bash
+  git diff --name-only origin/$BASE..HEAD | sed -n 's#^plugins/\([^/]*\)/.*#\1#p' | sort -u
+  ```
+
+  If that yields exactly one plugin name, use it as `(plugin)`. If it yields zero or more than one, **omit the parens entirely** — title becomes `type: ticket - description`.
+- **`ticket`** — the linked issue/ticket number from step 5 (just the number, e.g. `42`). If no ticket was found, **drop the `ticket - ` segment** — title becomes `type(plugin): description`.
+- **`description`** — a short imperative summary, sourced in priority order:
+  1. The linked issue's title, lightly cleaned up (strip leading `[bug]`, `[feat]`, etc.)
+  2. The most recent commit subject, if there's only one commit
+  3. A summary derived from the branch name + commit subjects
+
+Examples:
+
+- Plugin + ticket: `feat(skillet): 42 - add worktree skill`
+- Plugin, no ticket: `feat(skillet): add worktree skill`
+- No plugin, ticket: `fix: 17 - correct base-branch detection`
+- Neither: `docs: clarify PR template fallback`
 
 Keep it under 70 characters. No trailing period.
 
