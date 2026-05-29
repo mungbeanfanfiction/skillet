@@ -34,17 +34,24 @@ plugins/skillet/
 ## Versioning
 
 Versions are managed automatically by [semantic-release](https://semantic-release.gitbook.io/).
-Merges to `main` are analyzed for [Conventional Commits](https://www.conventionalcommits.org/):
+Every merge to `main` is analyzed for [Conventional Commits](https://www.conventionalcommits.org/);
+the highest bump among the merged commits wins. On a releasable merge, CI bumps
+the version in `plugins/skillet/plugin.json` and `.claude-plugin/marketplace.json`,
+updates `CHANGELOG.md`, and pushes a `vX.Y.Z` tag — no manual step required.
 
-- `fix:` → patch, `feat:` → minor, `feat!:` / `BREAKING CHANGE` → major.
+### Commit conventions
 
-On a releasable merge, CI bumps the version in `plugins/skillet/plugin.json`
-and `.claude-plugin/marketplace.json`, updates `CHANGELOG.md`, and pushes a
-`vX.Y.Z` tag — no manual step required.
+| Commit message | Bump | Example → from `0.2.0` |
+|---|---|---|
+| `fix: …` / `perf: …` / `revert: …` | patch | `0.2.1` |
+| `feat: …` | minor | `0.3.0` |
+| `<type>!: …` (e.g. `feat!:`, `fix!:`) | **major** | `1.0.0` |
+| footer contains `BREAKING CHANGE: …` | **major** | `1.0.0` |
+| `docs:` / `chore:` / `style:` / `test:` / `refactor:` / `build:` / `ci:` | none | no release |
 
-> **One-time setup:** before the first automated release, tag the current
-> commit as the baseline so semantic-release continues the `0.x` line instead
-> of jumping to `1.0.0`:
-> ```bash
-> git tag v0.1.0 && git push origin v0.1.0
-> ```
+Notes:
+
+- The `!` must sit immediately before the colon: `feat!:` works, `feat !:` does not.
+- `BREAKING CHANGE:` must be in the commit **body/footer**, not the subject line.
+- A release with both a `feat:` and a `fix:` takes the higher bump (minor).
+- Commits that map to "none" still run the workflow, but it exits without releasing.
