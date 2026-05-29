@@ -30,3 +30,21 @@ plugins/skillet/
     ├── delete-worktree/SKILL.md
     └── cleanup-worktrees/SKILL.md
 ```
+
+## Versioning
+
+Versions are managed automatically by [semantic-release](https://semantic-release.gitbook.io/).
+Merges to `main` are analyzed for [Conventional Commits](https://www.conventionalcommits.org/):
+
+- `fix:` → patch, `feat:` → minor, `feat!:` / `BREAKING CHANGE` → major.
+
+On a releasable merge, CI bumps the version in `plugins/skillet/plugin.json`
+and `.claude-plugin/marketplace.json`, updates `CHANGELOG.md`, and pushes a
+`vX.Y.Z` tag — no manual step required.
+
+> **One-time setup:** before the first automated release, tag the current
+> commit as the baseline so semantic-release continues the `0.x` line instead
+> of jumping to `1.0.0`:
+> ```bash
+> git tag v0.1.0 && git push origin v0.1.0
+> ```
