@@ -5,7 +5,7 @@
   "type": "module",
   "description": "Release tooling for the skillet marketplace (not published).",
   "scripts": {
-    "test": "node --test scripts/"
+    "test": "node --test \"scripts/**/*.test.mjs\""
   },
   "devDependencies": {
     "@semantic-release/changelog": "^6.0.3",
