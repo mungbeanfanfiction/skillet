@@ -17,6 +17,7 @@ Personal marketplace of Claude Code skills.
 | `/create-worktree` | Create a git worktree for a branch or GitHub issue, with env files symlinked. |
 | `/delete-worktree` | Safely remove a worktree (checks for uncommitted/unpushed work). |
 | `/cleanup-worktrees` | Survey all worktrees and bulk-remove ones whose branches are merged or whose PRs are closed. |
+| `/review-fix` | Review a PR with `/code-review` and auto-fix high/medium findings, looping until clean; unsafe findings become PR comments. |
 
 ## Layout
 
@@ -28,7 +29,8 @@ plugins/skillet/
     ├── open-pr/SKILL.md
     ├── create-worktree/SKILL.md
     ├── delete-worktree/SKILL.md
-    └── cleanup-worktrees/SKILL.md
+    ├── cleanup-worktrees/SKILL.md
+    └── review-fix/SKILL.md
 ```
 
 ## Versioning
