@@ -18,6 +18,7 @@ Personal marketplace of Claude Code skills.
 | `/delete-worktree` | Safely remove a worktree (checks for uncommitted/unpushed work). |
 | `/cleanup-worktrees` | Survey all worktrees and bulk-remove ones whose branches are merged or whose PRs are closed. |
 | `/review-fix` | Review a PR with `/code-review` and auto-fix high/medium findings, looping until clean; unsafe findings become PR comments. |
+| `/drain-queue` | Work a queue of tasks (GitHub label or markdown checklist) unattended: each task → worktree → checks → draft PR → `/review-fix`, then a run-report. |
 
 ## Layout
 
@@ -30,7 +31,8 @@ plugins/skillet/
     ├── create-worktree/SKILL.md
     ├── delete-worktree/SKILL.md
     ├── cleanup-worktrees/SKILL.md
-    └── review-fix/SKILL.md
+    ├── review-fix/SKILL.md
+    └── drain-queue/SKILL.md
 ```
 
 ## Versioning
