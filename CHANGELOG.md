@@ -1,3 +1,9 @@
+## [0.3.0](https://github.com/mungbeanfanfiction/skillet/compare/v0.2.0...v0.3.0) (2026-06-01)
+
+### Features
+
+* add review-fix skill for autonomous PR review and fixing ([#3](https://github.com/mungbeanfanfiction/skillet/issues/3)) ([472c35a](https://github.com/mungbeanfanfiction/skillet/commit/472c35a1bb48c896a5895eddfe484416f7cf4f79))
+
 ## [0.2.0](https://github.com/mungbeanfanfiction/skillet/compare/v0.1.0...v0.2.0) (2026-05-29)
 
 ### Features
