@@ -30,20 +30,19 @@ If an issue number was provided, fetch it:
 gh issue view <number> --repo "$REPO" --json number,title,url
 ```
 
-Derive a branch name from the issue title (or the user's argument): lowercase, hyphens, no special chars. Use a conventional prefix only if the repo's existing branch history shows the user normally uses one (`feat/`, `fix/`, etc.) — otherwise leave it un-prefixed.
+Derive a branch name from the issue title (or the user's argument): lowercase, hyphens, no special chars. Use a conventional prefix only if the repo's existing branch history shows the user normally uses one — and separate the prefix with a hyphen, not a slash (`refactor-...`, `feat-...`, `fix-...`, never `refactor/...`). Otherwise leave it un-prefixed.
 
 Ask the user to confirm the proposed branch name before creating anything.
 
 ### 2. Pick the worktree location
 
-Default: `<repo-root>/.claude/worktrees/<branch-slug>`, where `<branch-slug>` is the branch name with slashes replaced by hyphens so the directory stays flat. So for a repo on branch `feat/foo`, the worktree would be `<repo-root>/.claude/worktrees/feat-foo`.
+Default: `<repo-root>/.claude/worktrees/<branch-name>`. Branch names use hyphens (no slashes), so the directory stays flat without any transformation. So for a repo on branch `feat-foo`, the worktree would be `<repo-root>/.claude/worktrees/feat-foo`.
 
 Always anchor to the repo root — don't use a bare relative path, since the working directory may be a subdirectory of the repo:
 
 ```bash
 ROOT=$(git rev-parse --show-toplevel)
-SLUG=$(echo "<branch-name>" | tr '/' '-')
-WORKTREE="$ROOT/.claude/worktrees/$SLUG"
+WORKTREE="$ROOT/.claude/worktrees/<branch-name>"
 ```
 
 But check existing convention first:
@@ -62,7 +61,7 @@ Make sure the worktree dir is ignored so it doesn't pollute the main repo's `git
 
 ```bash
 git worktree add "$WORKTREE" -b <branch-name>
-# e.g. branch feat/foo → <repo-root>/.claude/worktrees/feat-foo
+# e.g. branch feat-foo → <repo-root>/.claude/worktrees/feat-foo
 ```
 
 ### 4. Symlink untracked dotfiles from the main repo
