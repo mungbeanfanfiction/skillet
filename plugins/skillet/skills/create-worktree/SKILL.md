@@ -59,9 +59,20 @@ Confirm the chosen path with the user before proceeding.
 
 Make sure the worktree dir is ignored so it doesn't pollute the main repo's `git status`. If `git -C "$ROOT" check-ignore .claude/worktrees/` comes up empty, add `.claude/worktrees/` to `$ROOT/.gitignore` (or `$ROOT/.git/info/exclude` to keep the rule uncommitted).
 
+Fetch the latest default branch first so the new branch starts from up-to-date code rather than whatever your current `HEAD` happens to be. Resolve the default branch from the remote, fetch it, and branch off it:
+
 ```bash
-git worktree add "$WORKTREE" -b <branch-name>
-# e.g. branch feat-foo → <repo-root>/.claude/worktrees/feat-foo
+DEFAULT_BRANCH=$(git -C "$ROOT" symbolic-ref --quiet --short refs/remotes/origin/HEAD 2>/dev/null | sed 's@^origin/@@')
+DEFAULT_BRANCH=${DEFAULT_BRANCH:-main}
+git -C "$ROOT" fetch origin "$DEFAULT_BRANCH"
+git worktree add "$WORKTREE" -b <branch-name> "origin/$DEFAULT_BRANCH"
+# e.g. branch feat-foo off latest origin/main → <repo-root>/.claude/worktrees/feat-foo
+```
+
+If the repo has no `origin` remote, fall back to branching off the local default branch:
+
+```bash
+git worktree add "$WORKTREE" -b <branch-name> "$DEFAULT_BRANCH"
 ```
 
 ### 4. Symlink untracked dotfiles from the main repo
