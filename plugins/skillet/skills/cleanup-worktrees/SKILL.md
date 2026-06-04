@@ -76,11 +76,11 @@ Show a table like:
 
 ```
 PATH                            BRANCH                STATUS
-🟢 ../myapp-feat-foo            feat/foo              PR #123 merged
-🟢 ../myapp-fix-bar             fix/bar               merged into main
-🟡 ../myapp-experiment-baz      experiment/baz        PR #99 closed (not merged)
-🟠 ../myapp-feat-qux            feat/qux              PR #124 open
-🔴 ../myapp-wip-thing           wip/thing             dirty, 3 unpushed commits
+🟢 ../myapp-feat-foo            feat-foo              PR #123 merged
+🟢 ../myapp-fix-bar             fix-bar               merged into main
+🟡 ../myapp-experiment-baz      experiment-baz        PR #99 closed (not merged)
+🟠 ../myapp-feat-qux            feat-qux              PR #124 open
+🔴 ../myapp-wip-thing           wip-thing             dirty, 3 unpushed commits
 ```
 
 ### 5. Ask what to remove

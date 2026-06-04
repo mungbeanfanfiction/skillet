@@ -128,7 +128,7 @@ Use the convention: **`type(plugin): ticket - description`**
 
 Build each segment:
 
-- **`type`** — a conventional-commit type inferred from the branch prefix or the latest commit subject (`feat/foo` → `feat`, `fix/bar` → `fix`, also `chore`, `docs`, `refactor`, `test`, etc.). Default to `feat` if it can't be determined.
+- **`type`** — a conventional-commit type inferred from the branch prefix or the latest commit subject (`feat-foo` → `feat`, `fix-bar` → `fix`, also `chore`, `docs`, `refactor`, `test`, etc.). Default to `feat` if it can't be determined.
 - **`(plugin)`** — **only if** all the branch's changes fall under a single plugin directory. Detect it from the changed files:
 
   ```bash
