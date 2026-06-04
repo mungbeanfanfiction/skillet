@@ -1,3 +1,9 @@
+## [0.4.0](https://github.com/mungbeanfanfiction/skillet/compare/v0.3.1...v0.4.0) (2026-06-04)
+
+### Features
+
+* **skills:** fetch latest default branch before creating worktree ([0322125](https://github.com/mungbeanfanfiction/skillet/commit/0322125421766357452ae7dac83cee75adc6e55a))
+
 ## [0.3.1](https://github.com/mungbeanfanfiction/skillet/compare/v0.3.0...v0.3.1) (2026-06-04)
 
 ### Bug Fixes
