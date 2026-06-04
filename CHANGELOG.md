@@ -1,3 +1,9 @@
+## [0.3.1](https://github.com/mungbeanfanfiction/skillet/compare/v0.3.0...v0.3.1) (2026-06-04)
+
+### Bug Fixes
+
+* **skills:** use hyphen-separated branch prefixes instead of slashes ([#5](https://github.com/mungbeanfanfiction/skillet/issues/5)) ([5707e55](https://github.com/mungbeanfanfiction/skillet/commit/5707e55fe3b30bdd69917081b95334f7d4f1e42a))
+
 ## [0.3.0](https://github.com/mungbeanfanfiction/skillet/compare/v0.2.0...v0.3.0) (2026-06-01)
 
 ### Features
