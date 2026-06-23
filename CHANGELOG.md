@@ -1,3 +1,9 @@
+## [0.6.0](https://github.com/mungbeanfanfiction/skillet/compare/v0.5.0...v0.6.0) (2026-06-23)
+
+### Features
+
+* add worktree-status reporting hook and reader skill ([#9](https://github.com/mungbeanfanfiction/skillet/issues/9)) ([c150030](https://github.com/mungbeanfanfiction/skillet/commit/c15003097b340e66e1f59189c7d460ebce4c2542))
+
 ## [0.5.0](https://github.com/mungbeanfanfiction/skillet/compare/v0.4.0...v0.5.0) (2026-06-23)
 
 ### Features
