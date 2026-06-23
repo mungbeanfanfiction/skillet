@@ -30,20 +30,23 @@ set).
 Given an issue number, `/triage-issue`:
 
 1. Fetches the issue (title, body, comments, labels, milestone).
-2. Creates an isolated worktree off **latest main** via `/create-worktree`,
-   **before writing any files**.
-3. **Routes explore-type issues** straight to labeling and stops (hands the deep
+2. **Routes explore-type issues** straight to labeling and stops (hands the deep
    work to `/explore-issue`).
-4. For everything else: assesses robustness, enriches a thin body
+3. For everything else: assesses robustness, enriches a thin body
    (non-destructively), and — only when clearly warranted — decomposes into an
    epic + sub-issues.
-5. Applies canonical labels (always including `auto`), creating any missing ones.
-6. Sets a milestone where derivable. **Never sets an assignee.**
-7. Posts a triage-summary comment on the issue.
+4. Applies canonical labels (always including `auto`), creating any missing ones.
+5. Sets a milestone where derivable. **Never sets an assignee.**
+6. Posts a triage-summary comment on the issue.
 
 It is **fully autonomous** — like `/create-issue`, it never asks for
 confirmation. Uncertainties it cannot resolve are recorded in an
 `## Open Questions` section of the enriched body rather than blocking on a prompt.
+
+**No worktree.** Unlike `/explore-issue`, `/triage-issue` writes **no repo
+files** in any path — every effect is GitHub-side (labels, body, comments,
+milestone, child issues). So it does **not** create a worktree; it operates
+directly against the repo it's invoked in.
 
 ## Autonomy & dual invocation
 
@@ -77,25 +80,7 @@ gh issue view <number> --repo "$REPO" \
 If `gh` is unauthenticated or no repo resolves, stop (interactive) / skip
 (queue). Read title + body + comments — that's the full statement of the ask.
 
-### 2. Create the worktree (off latest main) — BEFORE writing anything
-
-Hard ordering rule, matching `explore-issue`: create the worktree before any file
-is written.
-
-```
-/create-worktree <number> --noninteractive
-```
-
-All subsequent file writes happen inside this worktree. If worktree creation
-fails, abort — nothing has been written, so there is nothing to clean up; return
-a `skipped` result with the reason.
-
-> Note: in practice most of `/triage-issue`'s effects are GitHub-side (labels,
-> body, comments, child issues) rather than repo files. The worktree exists to
-> satisfy the "isolate any file writes" convention and to give the run a clean,
-> up-to-date branch context; it will usually end empty.
-
-### 3. Assess
+### 2. Assess
 
 A **first-pass** judgment only — no codebase investigation, no Explore agents:
 
@@ -104,18 +89,18 @@ A **first-pass** judgment only — no codebase investigation, no Explore agents:
 - **Robustness:** is the body already structured and actionable, or thin?
 - **Size:** does it clearly span multiple independent units of work?
 
-### 4. Route explore-type issues, then stop
+### 3. Route explore-type issues, then stop
 
 If the assessed type is `explore`:
 
 - Apply labels `explore` + `auto` + any clear area + a priority.
-- Create any missing labels (step 7 rules).
-- Set a milestone if derivable (step 8).
-- Post the triage comment (step 9) noting it is routed to `/explore-issue`.
+- Create any missing labels (step 6 rules).
+- Set a milestone if derivable (step 7).
+- Post the triage comment (step 8) noting it is routed to `/explore-issue`.
 - **Stop.** Do **not** enrich the body or decompose — that is `/explore-issue`'s
   responsibility.
 
-### 5. Enrich the body (non-destructive) — non-explore only
+### 4. Enrich the body (non-destructive) — non-explore only
 
 If the body is already robust, leave it untouched. Otherwise **preserve and
 append**: never discard what the author wrote.
@@ -150,7 +135,7 @@ Derive everything from the issue itself (title, body, comments). Do **not**
 invent acceptance criteria the issue doesn't support — if genuinely unknown,
 leave a single `- [ ] TODO`. Update via `gh issue edit <number> --body-file`.
 
-### 6. Decompose into epic + sub-issues — only when clearly warranted
+### 5. Decompose into epic + sub-issues — only when clearly warranted
 
 Default is **not** to split. Only decompose when the issue clearly spans multiple
 independent work units. When it does:
@@ -171,7 +156,7 @@ independent work units. When it does:
 - The epic itself keeps `auto` plus `epic`; its own type/area/priority reflect
   the overall effort.
 
-### 7. Apply canonical labels
+### 6. Apply canonical labels
 
 Label taxonomy lives in `../_shared/labels.json` (read before labeling):
 
@@ -192,7 +177,7 @@ gh label list --limit 200 --json name --jq '.[].name'
 For each planned label not present, create it from `labels.json` (look up its
 `color` + `description`). **Never recolor or edit labels that already exist.**
 
-### 8. Set a milestone — no assignee
+### 7. Set a milestone — no assignee
 
 If a milestone is clearly derivable (e.g. the issue references a release/target,
 or there is an obvious current/open milestone it belongs to), set it:
@@ -204,7 +189,7 @@ gh issue edit <number> --repo "$REPO" --milestone "<title>"
 If no milestone clearly applies, omit it — do not guess. **Never set an
 assignee.**
 
-### 9. Post a triage summary comment
+### 8. Post a triage summary comment
 
 Comment on the issue summarizing the triage decision so there's an audit trail:
 
@@ -218,7 +203,7 @@ Comment on the issue summarizing the triage decision so there's an audit trail:
 gh issue comment <number> --repo "$REPO" --body-file <file>
 ```
 
-### 10. Return a structured result
+### 9. Return a structured result
 
 For queue compatibility, return a structured result describing the outcome:
 `triaged` / `routed-explore` / `decomposed` / `skipped` (+ reason), the labels
@@ -228,7 +213,7 @@ applied, milestone, and child-issue numbers.
 
 ### `create-issue` — add milestone support
 
-Add a milestone step to `/create-issue` mirroring step 8 above: set a milestone
+Add a milestone step to `/create-issue` mirroring step 7 above: set a milestone
 when clearly derivable from the conversation, otherwise omit. Update its existing
 "do not add assignees, milestones, or projects" rule to "do not add assignees or
 projects" (milestones now allowed). No other behavior change.
