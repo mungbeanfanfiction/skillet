@@ -103,7 +103,8 @@ docs/superpowers/specs/YYYY-MM-DD-<slug>-explore.md
 ```
 
 `<slug>` is derived from the issue title (lowercase, hyphens, no special chars).
-Use today's date. Follow this structure:
+Use today's date. Create the `docs/superpowers/specs/` directory first if it does
+not already exist. Follow this structure:
 
 ```markdown
 # Explore: <issue title> (#<n>) — Findings
