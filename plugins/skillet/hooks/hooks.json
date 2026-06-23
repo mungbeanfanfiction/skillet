@@ -1,5 +1,5 @@
 {
-  "description": "Guardrails for working in git worktrees instead of the primary checkout",
+  "description": "Skillet worktree hooks: guard against editing the primary checkout (PreToolUse), and record each worktree's work-in-progress status to .claude/status/STATUS.md (Stop)",
   "hooks": {
     "PreToolUse": [
       {
@@ -9,6 +9,16 @@
             "type": "command",
             "command": "${CLAUDE_PLUGIN_ROOT}/hooks/block-main-checkout.sh",
             "statusMessage": "Checking this is a worktree, not the main checkout"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/worktree-status.sh\""
           }
         ]
       }

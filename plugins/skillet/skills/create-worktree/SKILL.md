@@ -59,6 +59,8 @@ Confirm the chosen path with the user before proceeding.
 
 Make sure the worktree dir is ignored so it doesn't pollute the main repo's `git status`. If `git -C "$ROOT" check-ignore .claude/worktrees/` comes up empty, add `.claude/worktrees/` to `$ROOT/.gitignore` (or `$ROOT/.git/info/exclude` to keep the rule uncommitted).
 
+Also ensure the per-worktree status directory is excluded so the skillet worktree-status hook's `STATUS.md` never pollutes `git status`. If `git -C "$ROOT" check-ignore .claude/status/` comes up empty, add `.claude/status/` to `$ROOT/.git/info/exclude` (keeping the rule uncommitted, matching how `.claude/worktrees/` is handled).
+
 Fetch the latest default branch first so the new branch starts from up-to-date code rather than whatever your current `HEAD` happens to be. Resolve the default branch from the remote, fetch it, and branch off it:
 
 ```bash
