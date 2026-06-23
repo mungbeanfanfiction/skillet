@@ -189,7 +189,33 @@ rm "$BODY_FILE"
 
 Return the PR URL to the user.
 
-### 10. Do not
+### 10. Update the linked issue
+
+**Only if an issue was linked in step 5.** If no issue was found, skip this step
+silently.
+
+Post a comment on that issue announcing the draft PR. The wording must say the
+draft PR was **created** — never "opened" or "ready for review", because the PR
+is always a draft at this point.
+
+```bash
+REPO=$(gh repo view --json nameWithOwner --jq '.nameWithOwner')
+BODY_FILE=$(mktemp)
+printf '🔧 Draft PR created: %s\n' "<pr-url>" > "$BODY_FILE"
+gh issue comment <num> --repo "$REPO" --body-file "$BODY_FILE"
+rm "$BODY_FILE"
+```
+
+Post this **automatically** — do not ask the user first. They already confirmed
+opening the PR in step 8, and a comment is non-destructive. (In non-interactive
+mode this is unchanged — it already posts without prompting.)
+
+Report both the PR URL and the issue-comment URL to the user.
+
+> For a standalone issue update outside the PR flow (mid-work status, blocked,
+> etc.), use the `/update-issue` skill.
+
+### 11. Do not
 
 - Do not mark the PR ready-for-review — always `--draft`.
 - Do not add reviewers, labels, milestones, or assignees automatically. The user does that.
