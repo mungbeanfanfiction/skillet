@@ -1240,7 +1240,7 @@ while read -r path; do
     --argjson restart "${restart:-0}" --argjson present "$task_present" \
     '. += [{issue:$issue, path:$path, branch:$branch, owned:$owned, facts:{
         process_alive:$alive, has_question_md:$hasq, task_complete:$complete,
-        has_open_pr:$haspr, restart_count:$restart, task_md_present:$present}}]')
+        has_open_pr:$haspr, restart_count:$restart, task_md_present:$present}}]')"
 done < <(git worktree list --porcelain | awk '/^worktree /{print $2}')
 
 python3 - "$LIB_DIR" "$REGISTRY" "$ISSUES_JSON" "$FACTS" <<'PY'
