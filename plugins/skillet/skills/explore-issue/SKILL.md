@@ -93,3 +93,123 @@ If an agent returned nothing useful, proceed with the others and note the gap.
 The synthesis must cover: relevant code, current behavior, the lay of the land /
 root cause, options (if a decision is called for), a recommendation, and any open
 questions.
+
+### 5. Write the findings spec
+
+Write the synthesized findings to:
+
+```
+docs/superpowers/specs/YYYY-MM-DD-<slug>-explore.md
+```
+
+`<slug>` is derived from the issue title (lowercase, hyphens, no special chars).
+Use today's date. Follow this structure:
+
+```markdown
+# Explore: <issue title> (#<n>) — Findings
+
+**Date:** YYYY-MM-DD
+**Issue:** <url>
+**Branch / PR:** <link>
+
+## The ask
+<the issue, restated — what's actually being asked or investigated>
+
+## What we found
+<synthesized narrative of current behavior / lay of the land, with file:line cites>
+
+## Relevant code
+| Area | Location | Role |
+|---|---|---|
+| ... | path:line | ... |
+
+## Options
+<2–3 approaches with trade-offs, if the issue calls for a decision>
+
+## Recommendation
+<the recommended direction with reasoning — or "investigation only, no change recommended">
+
+## Open questions
+<every uncertainty the skill could not resolve — since it never asks, these land here>
+```
+
+The **Open questions** section is mandatory. Since the skill never asks the user,
+this is where every unresolved ambiguity goes — even in interactive mode.
+
+### 5b. Self-review the spec, then commit
+
+Before opening the PR, re-read the spec with fresh eyes and fix issues inline:
+
+1. **Placeholder scan** — no `TBD`/`TODO`/empty section (the `<...>` markers in
+   the template above are placeholders to fill, not to leave).
+2. **Internal consistency** — sections must not contradict each other.
+3. **Unsupported claims** — every cited file / symbol / `file:line` must actually
+   exist. The spec was synthesized from subagent reports; verify the citations
+   with a quick `Read`/`grep` before committing, so no hallucinated reference is
+   committed or posted to the issue.
+4. **Ambiguity** — if a finding reads two ways, make it explicit or move the
+   uncertainty to Open Questions.
+5. **Scope** — keep it focused on the issue.
+
+Then commit on the worktree branch (no `Co-Authored-By` trailer):
+
+```bash
+git add docs/superpowers/specs/YYYY-MM-DD-<slug>-explore.md
+git commit -m "docs: explore findings for issue #<n>"
+```
+
+### 6. Open a draft PR
+
+Invoke `/open-pr` to push the branch and open a **draft** PR linking the issue:
+
+```
+/open-pr <number>
+```
+
+`/open-pr` always creates the PR in draft mode and adds a `Closes #<n>` line when
+an issue is linked. Capture the returned PR URL — it goes in the issue comment and
+the returned report.
+
+### 7. Comment on the issue
+
+Post a short summary plus a link to the PR/spec on the issue:
+
+```bash
+gh issue comment <number> --repo "$REPO" --body "<summary + PR link + spec path>"
+```
+
+If the comment fails (e.g. permissions), do **not** error out — the spec and PR
+still exist. Record the failure in the returned report.
+
+### 8. Return a structured result
+
+Return a structured result so `/drain-queue` can consume it the same way as its
+other subagent results:
+
+- `done` — include the PR URL, the spec path, and a one-line summary.
+- `skipped` — include the reason (used for the bad-issue and worktree-failure
+  paths above).
+
+## Routing contract (queue integration)
+
+`/drain-queue` distinguishes explore issues by **GitHub label**: an issue labeled
+`explore` is routed to this skill instead of the normal implement-it path.
+
+> **Pending separate work:** the actual `/drain-queue` edit that performs this
+> routing is handled separately and is **not** part of this skill. This section
+> documents the contract the queue relies on.
+
+## Never stall
+
+This skill never asks the user to resolve ambiguity — interactive or unattended.
+Every uncertainty is recorded in the spec's **Open Questions** section and the
+skill proceeds. This keeps interactive and queue behavior identical and guarantees
+the autonomous queue never idles.
+
+## Notes
+
+- This skill deep-dives **one** issue. It does not triage or browse multiple
+  issues.
+- It **investigates and recommends**; it does not write application code.
+- Explore subagents are **read-only**.
+- Never add a `Co-Authored-By` trailer to commits (repo rule).
