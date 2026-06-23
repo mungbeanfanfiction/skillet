@@ -21,6 +21,17 @@
 > calls `/sync-repo-labels` then adds only `epic`/`loop-generated`/`needs-input`;
 > (4) the cycle report invokes `worktree-status` (additive — `survey.sh` still
 > drives automated decisions).
+>
+> **Live-dispatch fixes (2026-06-23):** a real smoke-test (`dispatch.sh` against a
+> throwaway issue) surfaced two bugs the task-by-task snippets below still show
+> uncorrected — see commit `fix(supervisor): resolve claude binary + survive
+> grep-no-match in dispatch`: (a) the env-file `grep` in `dispatch.sh` aborts under
+> `set -o pipefail` when it matches nothing — it must be wrapped
+> `{ grep ... || true; }`; (b) `claude` is commonly a shell ALIAS, so a bare
+> `nohup claude` fails in the detached subshell — `common.sh` now provides
+> `resolve_claude()` (`$CLAUDE_BIN` → `command -v claude` → `~/.claude/local/claude`)
+> and all three spawn scripts call `CLAUDE="$(resolve_claude)"` then
+> `nohup "$CLAUDE" ...`. After both fixes the end-to-end dispatch was verified live.
 
 ---
 
