@@ -15,8 +15,9 @@ owned="$(py "from supervisorlib import registry; print('true' if registry.is_own
 rm -f "$WT/.claude/question.md"
 
 PROMPT="$(py "from supervisorlib import spawn; print(spawn.resume_prompt(issue='$ISSUE'))")"
+CLAUDE="$(resolve_claude)"
 cd "$WT"
-nohup claude -p "$PROMPT" --permission-mode acceptEdits --add-dir "$WT" \
+nohup "$CLAUDE" -p "$PROMPT" --permission-mode acceptEdits --add-dir "$WT" \
   > "$WT/.claude/session.log" 2>&1 &
 echo $! > "$WT/.claude/session.pid"
 echo "resumed #$ISSUE → $WT (pid $(cat "$WT/.claude/session.pid"))"

@@ -23,8 +23,9 @@ open(task, 'w').write(text)
 PY
 
 PROMPT="$(py "from supervisorlib import spawn; print(spawn.restart_prompt(issue='$ISSUE'))")"
+CLAUDE="$(resolve_claude)"
 cd "$WT"
-nohup claude -p "$PROMPT" --permission-mode acceptEdits --add-dir "$WT" \
+nohup "$CLAUDE" -p "$PROMPT" --permission-mode acceptEdits --add-dir "$WT" \
   > "$WT/.claude/session.log" 2>&1 &
 echo $! > "$WT/.claude/session.pid"
 echo "restarted #$ISSUE → $WT (restart #$NEW, pid $(cat "$WT/.claude/session.pid"))"

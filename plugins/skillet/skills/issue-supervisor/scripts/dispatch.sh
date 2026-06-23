@@ -25,8 +25,10 @@ fi
 git -C "$REPO_ROOT" worktree add -b "$BRANCH" "$WT" "origin/$BASE" >/dev/null
 
 # Symlink gitignored env-like files from the main repo (best-effort).
+# `|| true` on grep: a no-match exit (1) must not abort the script under pipefail
+# when the repo has no .env files.
 git -C "$REPO_ROOT" ls-files --others --ignored --exclude-standard \
-  | grep -E '(^|/)\.env(\.|$)' | while read -r rel; do
+  | { grep -E '(^|/)\.env(\.|$)' || true; } | while read -r rel; do
     mkdir -p "$WT/$(dirname "$rel")"; ln -sfn "$REPO_ROOT/$rel" "$WT/$rel" 2>/dev/null || true
   done
 
@@ -52,8 +54,9 @@ NOW="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 py "from supervisorlib import registry; registry.add('$REGISTRY', issue='$ISSUE' if not '$ISSUE'.isdigit() else int('$ISSUE'), path='$WT', branch='$BRANCH', source='$SOURCE', created_at='$NOW')"
 
 PROMPT="$(py "from supervisorlib import spawn; print(spawn.dispatch_prompt(issue='$ISSUE'))")"
+CLAUDE="$(resolve_claude)"
 cd "$WT"
-nohup claude -p "$PROMPT" --permission-mode acceptEdits --add-dir "$WT" \
+nohup "$CLAUDE" -p "$PROMPT" --permission-mode acceptEdits --add-dir "$WT" \
   > "$WT/.claude/session.log" 2>&1 &
 echo $! > "$WT/.claude/session.pid"
 echo "dispatched #$ISSUE → $WT (pid $(cat "$WT/.claude/session.pid"))"

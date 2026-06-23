@@ -38,4 +38,16 @@ detect_ci_cmd() {
 
 py() { python3 -c "import sys; sys.path.insert(0,'$LIB_DIR'); $1"; }
 
+# Resolve the claude executable for detached (nohup) spawns. `claude` is often a
+# shell ALIAS (e.g. -> ~/.claude/local/claude), which does NOT survive into the
+# non-interactive subshell nohup runs, so we cannot rely on bare `claude`.
+# Order: explicit $CLAUDE_BIN override → PATH lookup → the standard local install.
+resolve_claude() {
+  if [ -n "${CLAUDE_BIN:-}" ] && [ -x "$CLAUDE_BIN" ]; then echo "$CLAUDE_BIN"; return; fi
+  local p; p="$(command -v claude 2>/dev/null || true)"
+  if [ -n "$p" ]; then echo "$p"; return; fi
+  if [ -x "$HOME/.claude/local/claude" ]; then echo "$HOME/.claude/local/claude"; return; fi
+  fail "claude executable not found (set CLAUDE_BIN or install the CLI)"
+}
+
 mkdir -p "$STATE_DIR"
