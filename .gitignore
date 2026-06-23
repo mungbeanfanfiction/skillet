@@ -1,1 +1,6 @@
 node_modules/
+
+# Python artifacts from supervisorlib tests
+__pycache__/
+*.pyc
+.pytest_cache/
