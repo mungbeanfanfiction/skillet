@@ -51,9 +51,24 @@ pickup
 EOF
 
 NOW="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-py "from supervisorlib import registry; registry.add('$REGISTRY', issue='$ISSUE' if not '$ISSUE'.isdigit() else int('$ISSUE'), path='$WT', branch='$BRANCH', source='$SOURCE', created_at='$NOW')"
+# Register the worktree. All values passed as argv (never interpolated into a
+# Python literal) so quotes in the path/title/etc. cannot break or inject.
+python3 - "$LIB_DIR" "$REGISTRY" "$ISSUE" "$WT" "$BRANCH" "$SOURCE" "$NOW" <<'PY'
+import sys
+sys.path.insert(0, sys.argv[1])
+from supervisorlib import registry
+reg, issue_raw, path, branch, source, created = sys.argv[2:8]
+issue = int(issue_raw) if issue_raw.isdigit() else issue_raw
+registry.add(reg, issue=issue, path=path, branch=branch, source=source, created_at=created)
+PY
 
-PROMPT="$(py "from supervisorlib import spawn; print(spawn.dispatch_prompt(issue='$ISSUE'))")"
+PROMPT="$(python3 - "$LIB_DIR" "$ISSUE" <<'PY'
+import sys
+sys.path.insert(0, sys.argv[1])
+from supervisorlib import spawn
+print(spawn.dispatch_prompt(issue=sys.argv[2]))
+PY
+)"
 CLAUDE="$(resolve_claude)"
 cd "$WT"
 nohup "$CLAUDE" -p "$PROMPT" --permission-mode acceptEdits --add-dir "$WT" \

@@ -8,15 +8,30 @@ SWEEP_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$(cd "$SWEEP_DIR/../../issue-supervisor/scripts" && pwd)/common.sh"
 require_tools
 
+# Fail closed like survey.sh: emit the error envelope rather than a bare exit.
+trap 'fail "sweep aborted unexpectedly"' ERR
+
 INBOX="$REPO_ROOT/docs/superpowers/questions"
 mkdir -p "$INBOX"
+
+# Look up an owned worktree's issue number from the registry. Path is passed as
+# argv (never interpolated into a Python literal), so a quote in a foreign
+# worktree path cannot break or inject.
+issue_for_path() {
+  python3 - "$LIB_DIR" "$REGISTRY" "$1" <<'PY'
+import sys
+sys.path.insert(0, sys.argv[1])
+from supervisorlib import registry
+print(registry.issue_for_path(sys.argv[2], sys.argv[3]) or "")
+PY
+}
 
 RAISED="[]"
 while read -r path; do
   [ -z "$path" ] && continue
   q="$path/.claude/question.md"
   [ -f "$q" ] || continue
-  issue="$(py "from supervisorlib import registry; print(registry.issue_for_path('$REGISTRY','$path') or '')")"
+  issue="$(issue_for_path "$path")"
   [ -z "$issue" ] && continue
   if [ ! -f "$INBOX/$issue.md" ]; then
     RAISED="$(echo "$RAISED" | jq --argjson i "$issue" --arg p "$path" '. += [{issue:$i, path:$p}]')"

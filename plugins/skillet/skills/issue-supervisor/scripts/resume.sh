@@ -7,14 +7,19 @@ source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/common.sh"
 
 WT="$1"; ISSUE="$2"; TASK="$WT/.claude/task.md"
 
-owned="$(py "from supervisorlib import registry; print('true' if registry.is_owned('$REGISTRY','$WT') else 'false')")"
-[ "$owned" = true ] || { echo "refusing: $WT is not owned"; exit 1; }
+[ "$(is_owned "$WT")" = true ] || { echo "refusing: $WT is not owned"; exit 1; }
 [ -f "$TASK" ] || { echo "no task.md at $WT — refusing resume"; exit 1; }
 
 # Clear the question marker so the worktree leaves needs-input.
 rm -f "$WT/.claude/question.md"
 
-PROMPT="$(py "from supervisorlib import spawn; print(spawn.resume_prompt(issue='$ISSUE'))")"
+PROMPT="$(python3 - "$LIB_DIR" "$ISSUE" <<'PY'
+import sys
+sys.path.insert(0, sys.argv[1])
+from supervisorlib import spawn
+print(spawn.resume_prompt(issue=sys.argv[2]))
+PY
+)"
 CLAUDE="$(resolve_claude)"
 cd "$WT"
 nohup "$CLAUDE" -p "$PROMPT" --permission-mode acceptEdits --add-dir "$WT" \
