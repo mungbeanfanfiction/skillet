@@ -19,12 +19,21 @@ Personal marketplace of Claude Code skills.
 | `/cleanup-worktrees` | Survey all worktrees and bulk-remove ones whose branches are merged or whose PRs are closed. |
 | `/review-fix` | Review a PR with `/code-review` and auto-fix high/medium findings, looping until clean; unsafe findings become PR comments. |
 
+## Hooks
+
+| Hook | What it does |
+|---|---|
+| Worktree guard (`PreToolUse`) | Before any `Edit`/`Write`/`NotebookEdit`, asks for confirmation if you're editing the **primary checkout** instead of a git worktree. Prevents concurrent sessions from clobbering each other in the shared main checkout. Worktrees proceed without a prompt. |
+
 ## Layout
 
 ```
 .claude-plugin/marketplace.json   # marketplace manifest
 plugins/skillet/
 ├── plugin.json                   # plugin manifest
+├── hooks/
+│   ├── hooks.json                # hook declarations
+│   └── block-main-checkout.sh    # worktree-guard logic
 └── skills/
     ├── open-pr/SKILL.md
     ├── create-worktree/SKILL.md

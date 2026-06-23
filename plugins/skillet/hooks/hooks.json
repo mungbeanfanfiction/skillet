@@ -1,6 +1,18 @@
 {
-  "description": "Skillet worktree-status Stop hook: records each worktree's work-in-progress status to .claude/status/STATUS.md",
+  "description": "Skillet worktree hooks: guard against editing the primary checkout (PreToolUse), and record each worktree's work-in-progress status to .claude/status/STATUS.md (Stop)",
   "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write|NotebookEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/block-main-checkout.sh",
+            "statusMessage": "Checking this is a worktree, not the main checkout"
+          }
+        ]
+      }
+    ],
     "Stop": [
       {
         "hooks": [

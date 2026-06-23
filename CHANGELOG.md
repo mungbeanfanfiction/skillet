@@ -1,3 +1,9 @@
+## [0.5.0](https://github.com/mungbeanfanfiction/skillet/compare/v0.4.0...v0.5.0) (2026-06-23)
+
+### Features
+
+* **skillet:** add worktree-guard hook ([#8](https://github.com/mungbeanfanfiction/skillet/issues/8)) ([a4f1f1c](https://github.com/mungbeanfanfiction/skillet/commit/a4f1f1cad12c2c43020b4148045c0693f3f9bdbf))
+
 ## [0.4.0](https://github.com/mungbeanfanfiction/skillet/compare/v0.3.1...v0.4.0) (2026-06-04)
 
 ### Features
