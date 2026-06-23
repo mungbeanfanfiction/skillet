@@ -18,6 +18,7 @@ Personal marketplace of Claude Code skills.
 | `/delete-worktree` | Safely remove a worktree (checks for uncommitted/unpushed work). |
 | `/cleanup-worktrees` | Survey all worktrees and bulk-remove ones whose branches are merged or whose PRs are closed. |
 | `/review-fix` | Review a PR with `/code-review` and auto-fix high/medium findings, looping until clean; unsafe findings become PR comments. |
+| `/explore-issue` | Deep-dive one GitHub issue: worktree off main, parallel Explore agents, findings spec, draft PR, and an issue comment. Routed by the `explore` label. |
 | `/create-issue` | Create a GitHub issue from the conversation, auto-labeled (queue/type/area/priority); creates any missing labels first. |
 | `/sync-repo-labels` | Seed/sync the canonical label set into a repo (additive + drift-fix, never deletes). |
 
@@ -42,6 +43,7 @@ plugins/skillet/
     ├── delete-worktree/SKILL.md
     ├── cleanup-worktrees/SKILL.md
     ├── review-fix/SKILL.md
+    ├── explore-issue/SKILL.md
     ├── create-issue/SKILL.md
     ├── sync-repo-labels/SKILL.md
     └── _shared/labels.json

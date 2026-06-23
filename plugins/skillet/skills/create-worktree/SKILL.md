@@ -1,7 +1,7 @@
 ---
 name: create-worktree
 description: Create a git worktree for a task or GitHub issue, with untracked dotfiles (.env, etc.) symlinked from the main repo. Does NOT merge or push. Use when starting isolated work on a feature, bug fix, or issue.
-argument-hint: "<branch-name-or-issue-number> [description]"
+argument-hint: "<branch-name-or-issue-number> [description] [--noninteractive]"
 ---
 
 # Create Worktree Skill
@@ -13,6 +13,15 @@ Use a separate git worktree to isolate work on a task. This keeps the main worki
 Parse the argument:
 - If it's a number → treat as a GitHub issue number; fetch the issue title and use it to derive a branch name
 - Otherwise → treat as a branch name (with optional free-text description as the remaining args)
+
+## Non-interactive mode
+
+When invoked with a `--noninteractive` flag (e.g. by another skill or the autonomous queue),
+**skip every confirmation prompt** below and proceed with the documented default
+choice instead. Specifically: do not ask the user to confirm the branch name or
+the worktree path, and do not ask about issue assignment (skip assignment unless a
+flag explicitly requests it). In non-interactive mode the skill must never block
+on input.
 
 ## Workflow
 
@@ -32,7 +41,8 @@ gh issue view <number> --repo "$REPO" --json number,title,url
 
 Derive a branch name from the issue title (or the user's argument): lowercase, hyphens, no special chars. Use a conventional prefix only if the repo's existing branch history shows the user normally uses one — and separate the prefix with a hyphen, not a slash (`refactor-...`, `feat-...`, `fix-...`, never `refactor/...`). Otherwise leave it un-prefixed.
 
-Ask the user to confirm the proposed branch name before creating anything.
+Ask the user to confirm the proposed branch name before creating anything. (In
+non-interactive mode, skip this and use the derived name.)
 
 ### 2. Pick the worktree location
 
@@ -53,7 +63,8 @@ git worktree list
 
 If the repo already keeps worktrees somewhere else (e.g. sibling directories, or a `.worktrees/` subdir), match that instead.
 
-Confirm the chosen path with the user before proceeding.
+Confirm the chosen path with the user before proceeding. (In non-interactive mode,
+skip this and use the chosen path.)
 
 ### 3. Create the worktree
 
@@ -111,7 +122,8 @@ If an issue number was used and the user wants it assigned to them:
 gh issue edit <number> --repo "$REPO" --add-assignee @me
 ```
 
-Ask first — not every workflow uses issue assignment.
+Ask first — not every workflow uses issue assignment. (In non-interactive mode,
+skip assignment entirely unless explicitly requested.)
 
 ### 6. Hand off
 
