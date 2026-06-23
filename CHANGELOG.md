@@ -1,3 +1,9 @@
+## [0.7.0](https://github.com/mungbeanfanfiction/skillet/compare/v0.6.0...v0.7.0) (2026-06-23)
+
+### Features
+
+* **skillet:** add create-issue and sync-repo-labels skills ([#11](https://github.com/mungbeanfanfiction/skillet/issues/11)) ([3fddafe](https://github.com/mungbeanfanfiction/skillet/commit/3fddafe010b4738b8d4eee203ea06ac8b1c0d9e6))
+
 ## [0.6.0](https://github.com/mungbeanfanfiction/skillet/compare/v0.5.0...v0.6.0) (2026-06-23)
 
 ### Features
