@@ -19,5 +19,9 @@ resolve is recorded in an **Open Questions** section of the spec, and it proceed
 
 The argument is a GitHub issue number.
 
-- Interactive, omitted → ask which issue to explore.
-- Queue → the number is always passed explicitly.
+- **Queue** → the number is always passed explicitly.
+- **Interactive, omitted** → infer the issue from the current branch name
+  (e.g. a leading number, or an `issue-<n>` / `<n>-...` pattern) the way
+  `review-fix` infers a PR. If no issue can be inferred, that is the one
+  permitted exception to the no-prompting rule: ask the user which issue to
+  explore.
