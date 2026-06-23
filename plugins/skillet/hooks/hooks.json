@@ -1,12 +1,12 @@
 {
+  "description": "Skillet worktree-status Stop hook: records each worktree's work-in-progress status to .claude/status/STATUS.md",
   "hooks": {
     "Stop": [
       {
-        "matcher": "Stop",
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/worktree-status.sh"
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/worktree-status.sh\""
           }
         ]
       }
