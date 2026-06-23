@@ -1,0 +1,14 @@
+[
+  { "name": "auto",     "color": "5319e7", "description": "Ready for autonomous agent to work" },
+  { "name": "explore",  "color": "a371f7", "description": "Spike / investigation, not direct implementation" },
+  { "name": "feature",  "color": "0e8a16", "description": "New functionality" },
+  { "name": "bug",      "color": "d73a4a", "description": "Something is broken" },
+  { "name": "chore",    "color": "bfbfbf", "description": "Maintenance, tooling, deps" },
+  { "name": "refactor", "color": "fbca04", "description": "Restructuring without behavior change" },
+  { "name": "frontend", "color": "1d76db", "description": "Touches the frontend" },
+  { "name": "backend",  "color": "0052cc", "description": "Touches the backend" },
+  { "name": "database", "color": "006b75", "description": "Touches the database / schema" },
+  { "name": "p0",       "color": "b60205", "description": "Urgent / blocking" },
+  { "name": "p1",       "color": "d93f0b", "description": "High priority" },
+  { "name": "p2",       "color": "fef2c0", "description": "Normal / later" }
+]
