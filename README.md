@@ -21,6 +21,9 @@ Personal marketplace of Claude Code skills.
 | `/explore-issue` | Deep-dive one GitHub issue: worktree off main, parallel Explore agents, findings spec, draft PR, and an issue comment. Routed by the `explore` label. |
 | `/create-issue` | Create a GitHub issue from the conversation, auto-labeled (queue/type/area/priority); creates any missing labels first. |
 | `/sync-repo-labels` | Seed/sync the canonical label set into a repo (additive + drift-fix, never deletes). |
+| `/worktree-status` | Report every worktree's WIP narrative (from `STATUS.md`) plus live git state; flags stale worktrees. |
+| `/issue-supervisor` | ~5h loop: survey worktrees, restart stalled sessions, dispatch `auto`-labeled issues (or a `--file` checklist) to background sessions, groom the backlog. Opens draft PRs via `review-fix` + `open-pr`. |
+| `/question-sweeper` | ~1h loop: route sessions parked on design questions to `docs/superpowers/questions/` + a GitHub comment, and re-dispatch once answered. |
 
 ## Hooks
 
@@ -46,8 +49,29 @@ plugins/skillet/
     ├── explore-issue/SKILL.md
     ├── create-issue/SKILL.md
     ├── sync-repo-labels/SKILL.md
-    └── _shared/labels.json
+    ├── worktree-status/SKILL.md
+    ├── _shared/labels.json
+    ├── issue-supervisor/
+    │   ├── SKILL.md
+    │   ├── lib/supervisorlib/     # tested, stdlib-only deterministic logic
+    │   └── scripts/               # survey / dispatch / restart / resume glue
+    └── question-sweeper/
+        ├── SKILL.md
+        └── scripts/sweep.sh
 ```
+
+## Issue automation
+
+Two self-paced loops supervise `auto`-labeled issues (or a markdown checklist)
+across worktrees in ANY repo:
+
+- `/loop issue-supervisor` — ~5h: dispatch/restart/groom; opens draft PRs.
+- `/loop question-sweeper` — ~1h: routes design questions to `docs/superpowers/questions/`.
+
+Label an issue `auto` (or pass `--file <checklist>.md`) to enqueue it. Runtime
+state lives in the target repo's `.claude/issue-supervisor/` (gitignore it).
+Requires `python3` + `pytest` for the test suite, and `gh`/`jq`/`git`. See
+`docs/superpowers/specs/2026-06-23-issue-supervisor-v2-design.md`.
 
 ## Versioning
 

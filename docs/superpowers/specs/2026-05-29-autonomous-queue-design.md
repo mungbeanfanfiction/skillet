@@ -1,5 +1,9 @@
 # Design: Autonomous task queue — `/drain-queue` + `/review-fix`
 
+> **Superseded (2026-06-23):** `drain-queue` is retired and folded into
+> `issue-supervisor` + `question-sweeper`. See
+> `2026-06-23-issue-supervisor-v2-design.md`. `review-fix` is retained.
+
 **Date:** 2026-05-29
 **Status:** Approved (design); pending implementation plan
 **Repo:** skillet (personal Claude Code skill marketplace)
