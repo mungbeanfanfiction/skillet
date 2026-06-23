@@ -1,7 +1,7 @@
 ---
 name: create-worktree
 description: Create a git worktree for a task or GitHub issue, with untracked dotfiles (.env, etc.) symlinked from the main repo. Does NOT merge or push. Use when starting isolated work on a feature, bug fix, or issue.
-argument-hint: "<branch-name-or-issue-number> [description] [--yes]"
+argument-hint: "<branch-name-or-issue-number> [description] [--noninteractive]"
 ---
 
 # Create Worktree Skill
@@ -16,7 +16,7 @@ Parse the argument:
 
 ## Non-interactive mode
 
-When invoked with a `--yes` flag (e.g. by another skill or the autonomous queue),
+When invoked with a `--noninteractive` flag (e.g. by another skill or the autonomous queue),
 **skip every confirmation prompt** below and proceed with the documented default
 choice instead. Specifically: do not ask the user to confirm the branch name or
 the worktree path, and do not ask about issue assignment (skip assignment unless a

@@ -51,12 +51,12 @@ Invoke `/create-worktree` with the issue number so it derives a branch from the
 issue title and branches off the latest default branch:
 
 ```
-/create-worktree <number> --yes
+/create-worktree <number> --noninteractive
 ```
 
 `/create-worktree` fetches the latest default branch and branches off it, so the
-worktree starts from up-to-date code. The `--yes` flag runs it non-interactively
-(no confirmation prompts), which is required for unattended queue runs. **All
+worktree starts from up-to-date code. The `--noninteractive` flag skips its
+confirmation prompts, which is required for unattended queue runs. **All
 subsequent steps run inside this worktree.**
 
 If worktree creation fails, abort here. Nothing has been written yet, so there is
@@ -165,13 +165,13 @@ git commit -m "docs: explore findings for issue #<n>"
 Invoke `/open-pr` to push the branch and open a **draft** PR linking the issue:
 
 ```
-/open-pr <number> --yes
+/open-pr <number> --noninteractive
 ```
 
 `/open-pr` always creates the PR in draft mode and adds a `Closes #<n>` line when
-an issue is linked. The `--yes` flag runs it non-interactively (no confirmation
-prompt). Capture the returned PR URL — it goes in the issue comment and the
-returned report.
+an issue is linked. The `--noninteractive` flag skips its confirmation prompt.
+Capture the returned PR URL — it goes in the issue comment and the returned
+report.
 
 ### 7. Comment on the issue
 

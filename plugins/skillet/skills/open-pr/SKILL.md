@@ -1,7 +1,7 @@
 ---
 name: open-pr
 description: Open a draft pull request on GitHub. Discovers and uses the repo's PR template, fills the overview from the linked issue (if any) or from the conversation context plus git log, and creates the PR in DRAFT mode. Use when ready to open a PR for the current branch.
-argument-hint: "[issue-or-ticket-number] [--yes]"
+argument-hint: "[issue-or-ticket-number] [--noninteractive]"
 ---
 
 # Open Draft PR Skill
@@ -16,7 +16,7 @@ Optional argument: an issue/ticket number to link explicitly. If omitted, the sk
 
 ## Non-interactive mode
 
-When invoked with a `--yes` flag (e.g. by another skill or the autonomous queue),
+When invoked with a `--noninteractive` flag (e.g. by another skill or the autonomous queue),
 **skip the confirmation prompts** and proceed: do not ask before opening the PR
 (open it directly with the prepared title/body), and if there are uncommitted
 changes, proceed with only the committed work rather than asking. The PR is still
