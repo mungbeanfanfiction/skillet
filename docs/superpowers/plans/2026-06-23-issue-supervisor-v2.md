@@ -145,6 +145,7 @@ Create `plugins/skillet/skills/issue-supervisor/lib/pytest.ini`:
 [pytest]
 testpaths = tests
 python_files = test_*.py
+pythonpath = .
 addopts = -q
 ```
 
@@ -1793,7 +1794,7 @@ Edit `package.json` `scripts` so it reads:
   "scripts": {
     "test": "npm run test:tooling && npm run test:lib",
     "test:tooling": "node --test \"scripts/**/*.test.mjs\"",
-    "test:lib": "python3 -m pytest plugins/skillet/skills/issue-supervisor/lib -q"
+    "test:lib": "cd plugins/skillet/skills/issue-supervisor/lib && python3 -m pytest -q"
   },
 ```
 

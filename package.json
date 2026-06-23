@@ -5,7 +5,9 @@
   "type": "module",
   "description": "Release tooling for the skillet marketplace (not published).",
   "scripts": {
-    "test": "node --test \"scripts/**/*.test.mjs\""
+    "test": "npm run test:tooling && npm run test:lib",
+    "test:tooling": "node --test \"scripts/**/*.test.mjs\"",
+    "test:lib": "cd plugins/skillet/skills/issue-supervisor/lib && python3 -m pytest -q"
   },
   "devDependencies": {
     "@semantic-release/changelog": "^6.0.3",
