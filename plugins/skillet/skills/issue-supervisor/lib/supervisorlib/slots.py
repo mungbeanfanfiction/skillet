@@ -1,6 +1,6 @@
 """Slot accounting from ground-truth states each cycle. No shared counter
 between loops — both derive from the same state list."""
-from supervisorlib.state import is_in_flight, WorktreeState
+from supervisorlib.state import is_in_flight
 
 
 def free(states: list, *, cap: int = 3) -> int:
