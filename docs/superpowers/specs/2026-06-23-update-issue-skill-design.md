@@ -59,6 +59,10 @@ Invocable as `/update-issue [issue-number] [status message]`.
 **Does not:** change labels, milestones, assignees, or issue state; never closes
 the issue. Comment-only and non-destructive.
 
+**Non-interactive mode:** mirrors `open-pr` — a `--noninteractive` flag skips the
+confirm gate and posts directly; the skill never blocks on input. On a closed or
+unresolvable issue in this mode, it skips and reports rather than prompting.
+
 ### 2. `open-pr` integration
 
 After the PR is created and the URL is known (current step 9), add a new step
@@ -76,6 +80,8 @@ After the PR is created and the URL is known (current step 9), add a new step
   prompt.
 - Report both the PR URL and the issue-comment URL to the user.
 - If no issue was linked, skip silently.
+- In `open-pr`'s existing non-interactive mode, the new step is unchanged — it
+  already posts the comment without prompting.
 
 **Cross-skill boundary:** `open-pr` does **not** programmatically invoke
 `/update-issue` (skillet skills point users to slash commands, they don't call
