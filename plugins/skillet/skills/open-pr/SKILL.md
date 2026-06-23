@@ -1,7 +1,7 @@
 ---
 name: open-pr
 description: Open a draft pull request on GitHub. Discovers and uses the repo's PR template, fills the overview from the linked issue (if any) or from the conversation context plus git log, and creates the PR in DRAFT mode. Use when ready to open a PR for the current branch.
-argument-hint: "[issue-or-ticket-number]"
+argument-hint: "[issue-or-ticket-number] [--yes]"
 ---
 
 # Open Draft PR Skill
@@ -13,6 +13,15 @@ The PR is **always** created in draft mode.
 ## When Invoked
 
 Optional argument: an issue/ticket number to link explicitly. If omitted, the skill tries to infer one from the branch name or commits.
+
+## Non-interactive mode
+
+When invoked with a `--yes` flag (e.g. by another skill or the autonomous queue),
+**skip the confirmation prompts** and proceed: do not ask before opening the PR
+(open it directly with the prepared title/body), and if there are uncommitted
+changes, proceed with only the committed work rather than asking. The PR is still
+always created as a **draft**. In non-interactive mode the skill must never block
+on input.
 
 ## Workflow
 
@@ -28,7 +37,9 @@ git status --porcelain                 # warn if uncommitted changes
 
 If the current branch is `main` / `master` / `trunk`, stop and tell the user — PRs aren't opened from the base branch.
 
-If there are uncommitted changes, surface them and ask whether to proceed anyway (the PR will only contain committed work).
+If there are uncommitted changes, surface them and ask whether to proceed anyway
+(the PR will only contain committed work). (In non-interactive mode, skip the
+question and proceed with the committed work.)
 
 ### 2. Determine base branch
 
@@ -160,7 +171,8 @@ Show the user, in this order:
 - The proposed PR title
 - The proposed PR body (the filled template)
 
-Ask: **"Open this draft PR? (y/n, or paste edits)"**
+Ask: **"Open this draft PR? (y/n, or paste edits)"** (In non-interactive mode,
+skip this prompt and proceed directly to step 9 to create the PR.)
 
 If the user pastes edits, apply them and re-confirm.
 
