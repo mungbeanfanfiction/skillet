@@ -35,13 +35,45 @@ grep -qxF '.claude/status/' "$exclude_file" 2>/dev/null || printf '.claude/statu
 branch="$(git -C "$cwd" rev-parse --abbrev-ref HEAD 2>/dev/null)"
 dirty_count="$(git -C "$cwd" status --porcelain 2>/dev/null | wc -l | tr -d ' ')"
 
+transcript="$(printf '%s' "$input" | jq -r '.transcript_path // empty' 2>/dev/null)"
+updated="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+
+last_ask=""
+last_did=""
+if [ -n "$transcript" ] && [ -f "$transcript" ]; then
+  # Last user prompt: content may be a string or an array of blocks.
+  last_ask="$(jq -rs '
+    [ .[] | select(.type=="user")
+          | (.message.content // .content) ] | last
+    | if type=="array" then (map(select(.type=="text").text) | join(" "))
+      elif type=="string" then .
+      else "" end // ""' "$transcript" 2>/dev/null | head -c 200)"
+  # Last assistant text block.
+  last_did="$(jq -rs '
+    [ .[] | select(.type=="assistant")
+          | (.message.content // .content) ] | last
+    | if type=="array" then (map(select(.type=="text").text) | join(" "))
+      elif type=="string" then .
+      else "" end // ""' "$transcript" 2>/dev/null | head -c 200)"
+fi
+
+touched="$(git -C "$cwd" diff --stat 2>/dev/null | tail -1)"
+
 status_dir="$toplevel/.claude/status"
 mkdir -p "$status_dir"
 cat >"$status_dir/STATUS.md" <<EOF
 # worktree status
 
+- updated: $updated
 - branch: $branch
 - dirty files: $dirty_count
+
+## current activity
+**last ask:** $last_ask
+**last did:** $last_did
+
+## touched
+$touched
 EOF
 
 exit 0
