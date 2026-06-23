@@ -1,0 +1,17 @@
+{
+  "description": "Guardrails for working in git worktrees instead of the primary checkout",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write|NotebookEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/block-main-checkout.sh",
+            "statusMessage": "Checking this is a worktree, not the main checkout"
+          }
+        ]
+      }
+    ]
+  }
+}
