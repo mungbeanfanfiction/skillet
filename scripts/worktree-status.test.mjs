@@ -110,3 +110,14 @@ test("tolerates a malformed transcript line without erroring", () => {
   const body = readFileSync(join(wt, ".claude", "status", "STATUS.md"), "utf8");
   assert.match(body, /branch: feat-x/, "still writes branch even with malformed transcript");
 });
+
+test("adds .claude/status/ to info/exclude exactly once (idempotent)", () => {
+  const { main, wt } = setupRepoWithWorktree();
+  // The shared common dir's exclude file (worktrees share the main repo's .git).
+  const excludePath = join(main, ".git", "info", "exclude");
+  runHook(wt);
+  runHook(wt); // second run must not duplicate
+  const body = readFileSync(excludePath, "utf8");
+  const occurrences = body.split("\n").filter((l) => l === ".claude/status/").length;
+  assert.equal(occurrences, 1, "exclude entry should appear exactly once");
+});
