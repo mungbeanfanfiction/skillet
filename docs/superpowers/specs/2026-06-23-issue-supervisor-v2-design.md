@@ -181,6 +181,33 @@ handling.
 - Known deployment note: detached sessions need permission to write the worktree's
   `.claude/` (task.md/question.md) — document in the skill README.
 
+## Integration with sibling skillet skills (added 2026-06-23, post-rebase)
+
+After rebasing onto skillet `main` (v0.8.0), three sibling skills exist and are
+wired in:
+
+- **`explore-issue` routing.** An issue labeled `explore` is an investigation, not
+  an implementation. `dispatch.sh` writes the issue's labels into `task.md` as a
+  `**Labels:**` line; the per-issue pipeline (`spawn.PIPELINE`) gains a step-0
+  routing preamble: if `task.md` is labeled `explore`, run the `explore-issue`
+  skill (it produces its own findings spec → draft PR → issue comment), mark
+  `done`, and STOP — skip the implement pipeline. `explore` issues are still
+  fully *eligible* (not filtered); only the in-session behavior differs. The
+  supervisor's triage gate never decomposes an `explore` issue (exploration is one
+  focused investigation). `gh.is_explore(issue)` is the pure predicate. This
+  fulfills the "pending queue routing" contract documented in `explore-issue`'s
+  SKILL.md.
+- **`/sync-repo-labels` at bootstrap.** Instead of hand-creating `auto`, bootstrap
+  calls `/sync-repo-labels` to seed the canonical taxonomy (which already includes
+  `auto` and `explore`), then creates only the three supervisor-internal lifecycle
+  labels not in that set: `epic`, `loop-generated`, `needs-input`.
+- **`worktree-status` report enrichment.** The cycle report (step 5) invokes
+  `worktree-status` for the human-readable narrative + staleness, especially for
+  the foreign-worktree FYI. This is **additive only** — the automated
+  classification that drives restart/dispatch stays ground-truth based
+  (`survey.sh`); the supervisor never couples control decisions to the
+  hook-written `STATUS.md`.
+
 ## Out of scope (YAGNI)
 
 - Workflow-script (crash-resume via `Workflow()`) reimplementation — a possible v3.

@@ -14,9 +14,15 @@ Acquire `<repo>/.claude/issue-supervisor/supervisor.lock` (create the file; if i
 exists and is <6h old, exit — another cycle is running). Remove it at the end.
 
 ## 1. Bootstrap (first run only)
-Create any missing labels in the CURRENT repo (`REPO=$(gh repo view --json nameWithOwner --jq .nameWithOwner)`):
-`auto`, `epic`, `loop-generated`, `needs-input`. Then present open issues and apply
-`auto` only to the ones the user approves. Do NOT bulk-label.
+Seed the canonical label taxonomy with the `/sync-repo-labels` skill (it creates
+`auto`, `explore`, type/area/priority labels in the current repo, additive and
+drift-fixing). Then create the three supervisor-internal lifecycle labels that are
+NOT part of the canonical set:
+`gh label create epic --description "decomposed parent — not directly dispatched" --color 5319E7`,
+`gh label create loop-generated --description "auto-created sub-issue" --color BFD4F2`,
+`gh label create needs-input --description "session parked on a design question" --color D93F0B`
+(each `|| true` if it already exists). Then present open issues and apply `auto`
+only to the ones the user approves. Do NOT bulk-label.
 
 ## 2. Survey
 Run `scripts/survey.sh`. If it returns `{"error": ...}`, report the error and STOP
@@ -36,17 +42,28 @@ While `free_slots > 0` and the queue is non-empty, take the next item:
   (`gh issue view <n>`), judge scope.
 - **File queue (`--file`):** next unchecked `- [ ]` item.
 Run the **dispatch-time triage gate**:
-- **Atomic** (one focused PR) → `scripts/dispatch.sh <id> "<title>" <slug> <source>`.
-- **Too big** (label source only) → decompose autonomously: create ≤6 sub-issues
-  with `gh issue create ... --label auto --label loop-generated` and body
+- **Explore** (issue labeled `explore`) → dispatch normally, passing the labels so
+  the session routes itself to the `explore-issue` skill (no scope decomposition —
+  exploration is inherently one focused investigation):
+  `scripts/dispatch.sh <id> "<title>" <slug> label "<comma-separated-labels>"`.
+- **Atomic** (one focused PR) → `scripts/dispatch.sh <id> "<title>" <slug> <source> "<labels>"`.
+  Pass the issue's labels as the 5th arg (comma-separated, e.g. `auto,bug`) so the
+  session's pipeline can route on them; omit for file-source tasks.
+- **Too big** (label source only, NOT explore) → decompose autonomously: create ≤6
+  sub-issues with `gh issue create ... --label auto --label loop-generated` and body
   `part of #<n>`; then re-label the parent `epic` and remove `auto`. Do NOT
   dispatch the parent. (Idempotent: epics are filtered out by survey.)
 
 ## 5. Report + reschedule
 Print: in-flight (issue→state), restarted, PRs open, blocked w/ reason,
-needs-input count, foreign-stalled FYI, slots filled, backlog groomed. Append a
-run-report under `docs/superpowers/runs/` (use `supervisorlib.runreport`). Release
-the lock. The /loop reschedules ~5h.
+needs-input count, foreign-stalled FYI, slots filled, backlog groomed. For the
+human-readable narrative — especially the foreign-worktree FYI and staleness —
+run the `worktree-status` skill and fold its output into the report (it reads each
+worktree's `STATUS.md` + live git state). The automated classification above stays
+ground-truth based (`survey.sh`); `worktree-status` only enriches the report, it
+does not drive restart/dispatch decisions. Append a run-report under
+`docs/superpowers/runs/` (use `supervisorlib.runreport`). Release the lock. The
+/loop reschedules ~5h.
 
 ## Hard rules
 No merge, no push to the base branch, only DRAFT PRs (those happen inside

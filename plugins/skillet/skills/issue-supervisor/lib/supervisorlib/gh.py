@@ -3,10 +3,17 @@ layer; these take parsed JSON so they're unit-testable without network."""
 
 GATE_LABEL = "auto"
 EPIC_LABEL = "epic"
+EXPLORE_LABEL = "explore"
 
 
 def _label_names(issue: dict) -> set:
     return {lbl["name"] for lbl in issue.get("labels", [])}
+
+
+def is_explore(issue: dict) -> bool:
+    """True iff the issue carries the `explore` label. The per-issue pipeline
+    routes these to the explore-issue skill instead of the implement path."""
+    return EXPLORE_LABEL in _label_names(issue)
 
 
 def eligible_issues(issues: list, *, owned_issue_numbers: list) -> list:

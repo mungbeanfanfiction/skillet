@@ -3,6 +3,13 @@ session runs. The per-issue pipeline reuses skillet's `review-fix` skill for
 the review/auto-fix loop instead of calling /code-review directly."""
 
 PIPELINE = """\
+ROUTING (do this first): read the `**Labels:**` line in `.claude/task.md`. If it
+includes `explore`, this is an investigation, not an implementation — run the
+`explore-issue` skill for this issue number (it creates its own findings spec,
+opens a draft PR, and comments on the issue), then write `done` under
+`## Pipeline stage` and STOP. Do NOT run the implement pipeline below. Otherwise,
+run the implement pipeline:
+
 Run this pipeline for the task, logging each completed stage to the
 `## Pipeline stage` section of `.claude/task.md`:
 1. pickup — read `.claude/task.md` + any existing diff.

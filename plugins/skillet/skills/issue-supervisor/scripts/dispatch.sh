@@ -1,11 +1,13 @@
 #!/usr/bin/env bash
 # Dispatch one task: worktree off latest origin/<base>, task.md, register, spawn.
-# Usage: dispatch.sh <issue-or-id> <title> <slug> <source>   (source: label|file)
+# Usage: dispatch.sh <issue-or-id> <title> <slug> <source> [labels]
+#   source: label|file   labels: comma-separated (e.g. "auto,explore"); used by
+#   the session's pipeline to route `explore` issues to the explore-issue skill.
 set -euo pipefail
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/common.sh"
 require_tools
 
-ISSUE="$1"; TITLE="$2"; SLUG="$3"; SOURCE="${4:-label}"
+ISSUE="$1"; TITLE="$2"; SLUG="$3"; SOURCE="${4:-label}"; LABELS="${5:-}"
 REPO="$(detect_repo)"; BASE="$(detect_base)"
 BRANCH="auto-${ISSUE}-${SLUG}"
 WT="$WORKTREES_DIR/$BRANCH"
@@ -33,6 +35,7 @@ cat > "$WT/.claude/task.md" <<EOF
 # Task — issue #${ISSUE}
 **Goal:** ${TITLE}
 **Source:** ${SOURCE}
+**Labels:** ${LABELS}
 **Acceptance criteria:** see issue #${ISSUE} body.
 
 ## Pipeline stage

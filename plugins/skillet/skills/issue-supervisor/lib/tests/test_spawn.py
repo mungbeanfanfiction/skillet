@@ -17,6 +17,20 @@ def test_dispatch_prompt_references_task_md_review_fix_and_escape_hatch():
     assert "question.md" in p
 
 
+def test_dispatch_prompt_routes_explore_issues_to_explore_skill():
+    # every dispatch prompt carries the explore routing preamble, so a session
+    # whose task.md is labeled `explore` runs /explore-issue instead of implementing.
+    p = spawn.dispatch_prompt(issue=489)
+    assert "explore-issue" in p
+    assert "explore" in p.lower()
+
+
+def test_restart_and_resume_prompts_also_carry_explore_routing():
+    # a restarted/resumed explore session must still route correctly.
+    assert "explore-issue" in spawn.restart_prompt(issue=1)
+    assert "explore-issue" in spawn.resume_prompt(issue=1)
+
+
 def test_restart_prompt_says_resume_from_stage():
     p = spawn.restart_prompt(issue=489)
     assert "resume" in p.lower()
