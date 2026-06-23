@@ -1,3 +1,9 @@
+## [0.8.0](https://github.com/mungbeanfanfiction/skillet/compare/v0.7.0...v0.8.0) (2026-06-23)
+
+### Features
+
+* **skillet:** add /explore-issue deep-dive skill ([#7](https://github.com/mungbeanfanfiction/skillet/issues/7)) ([4e43727](https://github.com/mungbeanfanfiction/skillet/commit/4e43727210f84cb60ea983aee62a6608e1e7411d))
+
 ## [0.7.0](https://github.com/mungbeanfanfiction/skillet/compare/v0.6.0...v0.7.0) (2026-06-23)
 
 ### Features
