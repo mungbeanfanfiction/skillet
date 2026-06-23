@@ -85,4 +85,28 @@ test("tolerates an empty transcript without erroring", () => {
   runHookWithTranscript(wt, transcript);
   const body = readFileSync(join(wt, ".claude", "status", "STATUS.md"), "utf8");
   assert.match(body, /branch: feat-x/);
+  assert.match(body, /\*\*last ask:\*\*\s*$/m, "empty transcript yields empty last ask");
+});
+
+test("collapses multi-line content to a single line", () => {
+  const { wt } = setupRepoWithWorktree();
+  const transcript = writeTranscript([
+    { type: "user", message: { role: "user", content: "line one\nline two\n\nline three" } },
+    { type: "assistant", message: { role: "assistant", content: [{ type: "text", text: "did\nthis" }] } },
+  ]);
+  runHookWithTranscript(wt, transcript);
+  const body = readFileSync(join(wt, ".claude", "status", "STATUS.md"), "utf8");
+  assert.match(body, /\*\*last ask:\*\* line one line two line three/, "newlines collapsed in user prompt");
+  assert.match(body, /\*\*last did:\*\* did this/, "newlines collapsed in assistant line");
+});
+
+test("tolerates a malformed transcript line without erroring", () => {
+  const { wt } = setupRepoWithWorktree();
+  const dir = mkdtempSync(join(tmpdir(), "wt-tr-"));
+  const transcript = join(dir, "t.jsonl");
+  // Valid line followed by a broken (non-JSON) line.
+  writeFileSync(transcript, '{"type":"user","message":{"role":"user","content":"hi"}}\nNOT JSON{{{\n');
+  runHookWithTranscript(wt, transcript);
+  const body = readFileSync(join(wt, ".claude", "status", "STATUS.md"), "utf8");
+  assert.match(body, /branch: feat-x/, "still writes branch even with malformed transcript");
 });

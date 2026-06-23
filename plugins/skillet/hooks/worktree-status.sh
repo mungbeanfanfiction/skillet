@@ -45,16 +45,18 @@ if [ -n "$transcript" ] && [ -f "$transcript" ]; then
   last_ask="$(jq -rs '
     [ .[] | select(.type=="user")
           | (.message.content // .content) ] | last
-    | if type=="array" then (map(select(.type=="text").text) | join(" "))
-      elif type=="string" then .
-      else "" end // ""' "$transcript" 2>/dev/null | head -c 200)"
+    | ( if type=="array" then (map(select(.type=="text").text) | join(" "))
+        elif type=="string" then .
+        else "" end // "" )
+    | gsub("^\\s+|\\s+$";"") | gsub("\\s+";" ")' "$transcript" 2>/dev/null | head -c 200)"
   # Last assistant text block.
   last_did="$(jq -rs '
     [ .[] | select(.type=="assistant")
           | (.message.content // .content) ] | last
-    | if type=="array" then (map(select(.type=="text").text) | join(" "))
-      elif type=="string" then .
-      else "" end // ""' "$transcript" 2>/dev/null | head -c 200)"
+    | ( if type=="array" then (map(select(.type=="text").text) | join(" "))
+        elif type=="string" then .
+        else "" end // "" )
+    | gsub("^\\s+|\\s+$";"") | gsub("\\s+";" ")' "$transcript" 2>/dev/null | head -c 200)"
 fi
 
 touched="$(git -C "$cwd" diff --stat 2>/dev/null | tail -1)"
