@@ -10,6 +10,18 @@
 
 **Spec:** `docs/superpowers/specs/2026-06-23-issue-supervisor-v2-design.md`
 
+> **Post-rebase integration (2026-06-23):** after Tasks 1–19, the branch was
+> rebased onto skillet `main` (v0.8.0) and integrated with three sibling skills.
+> These changes are NOT reflected in the task-by-task snippets below — see the
+> spec's "Integration with sibling skillet skills" section and the commit
+> `feat(supervisor): route explore-issues, sync-repo-labels bootstrap, worktree-status report`:
+> (1) `gh.is_explore` + a step-0 routing preamble in `spawn.PIPELINE` send
+> `explore`-labeled issues to the `explore-issue` skill; (2) `dispatch.sh` gained a
+> 5th `[labels]` arg and writes a `**Labels:**` line into `task.md`; (3) bootstrap
+> calls `/sync-repo-labels` then adds only `epic`/`loop-generated`/`needs-input`;
+> (4) the cycle report invokes `worktree-status` (additive — `survey.sh` still
+> drives automated decisions).
+
 ---
 
 ## File Structure & Shared Interfaces
