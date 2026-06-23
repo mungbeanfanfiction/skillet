@@ -24,9 +24,9 @@ omitted.
 
 When invoked with `--noninteractive` (e.g. by another skill or the autonomous
 queue), **skip the confirmation prompt** in step 4 and post directly. The skill
-must never block on input in this mode. A status message must be resolvable
-(passed in or inferable) — if the target issue cannot be resolved, do not post;
-report the problem and stop.
+must never block on input in this mode. If neither the issue nor a status
+message can be resolved (passed in or inferable), do not post; report the
+problem and stop.
 
 ## Workflow
 

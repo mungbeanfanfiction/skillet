@@ -33,7 +33,7 @@ Two pieces:
 
 Path: `plugins/skillet/skills/update-issue/SKILL.md`
 
-Invocable as `/update-issue [issue-number] [status message]`.
+Invocable as `/update-issue [issue-number] [status message] [--noninteractive]`.
 
 **Input resolution:**
 - Issue number: explicit arg → else infer from branch name / commits using the
