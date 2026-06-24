@@ -168,8 +168,15 @@ handling.
 
 ## Reuse of existing skillet skills
 
-- **`review-fix`** — the per-issue pipeline calls it for the review/auto-fix loop
-  (replaces direct `/code-review` calls in the original build).
+- **Review (corrected 2026-06-24):** the per-issue pipeline's review step
+  dispatches the **`pr-review-toolkit:code-reviewer` subagent** (via the Agent/Task
+  tool) and applies its high/medium findings, cap 3 rounds. The original v2 design
+  said "use the `review-fix` skill," but a live run proved that broken: `review-fix`
+  invokes the `/code-review` **slash command**, and a headless `claude -p` session
+  **cannot invoke slash commands** — so the review silently degraded to a manual
+  pass every dispatch. A dispatchable subagent is the headless-safe equivalent.
+  (`review-fix` remains useful interactively; it is just not invocable from a
+  detached session.)
 - **`create-worktree`** patterns / **`open-pr`** — align with skillet's existing
   worktree + PR skills where practical (the supervisor's `dispatch.sh` may call
   `open-pr` heritage rather than a bespoke PR step).

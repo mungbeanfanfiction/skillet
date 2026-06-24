@@ -1,6 +1,6 @@
 ---
 name: issue-supervisor
-description: Supervise auto-labeled GitHub issues (or a markdown checklist) across git worktrees — survey ground truth, restart stalled background sessions, dispatch new work to fill 3 slots, groom the backlog. Repo-agnostic; reuses review-fix. Use when running the ~5h supervisor loop.
+description: Supervise auto-labeled GitHub issues (or a markdown checklist) across git worktrees — survey ground truth, restart stalled background sessions, dispatch new work to fill 3 slots, groom the backlog. Repo-agnostic. Use when running the ~5h supervisor loop.
 argument-hint: "[--label <name> | --file <path>]"
 ---
 
@@ -73,4 +73,6 @@ does not drive restart/dispatch decisions. Append a run-report under
 ## Hard rules
 No merge, no push to the base branch, only DRAFT PRs (those happen inside
 sessions). Never git restore/checkout/clean/reset. Foreign worktrees are
-report-only. The per-issue review step uses the `review-fix` skill.
+report-only. The per-issue review step dispatches the
+`pr-review-toolkit:code-reviewer` subagent (a headless session can't invoke the
+`/code-review` slash command), applies its high/medium findings, cap 3 rounds.
