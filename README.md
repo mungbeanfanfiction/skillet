@@ -22,6 +22,7 @@ Personal marketplace of Claude Code skills.
 | `/create-issue` | Create a GitHub issue from the conversation, auto-labeled (queue/type/area/priority); creates any missing labels first. |
 | `/triage-issue` | First-pass triage of an existing GitHub issue: assess, enrich a thin body, apply canonical labels (incl. `auto`), set a milestone, and post a triage comment. The inverse of `/create-issue`. |
 | `/sync-repo-labels` | Seed/sync the canonical label set into a repo (additive + drift-fix, never deletes). |
+| `/init-repo` | Bootstrap a repo to the standard setup: seed labels (via `/sync-repo-labels`), add a PR template if missing, optionally protect the default branch. Additive + idempotent. |
 | `/worktree-status` | Report every worktree's WIP narrative (from `STATUS.md`) plus live git state; flags stale worktrees. |
 | `/pr-fleet-manager` | Loop that watches your open PRs in the current repo: retries flaky CI, surfaces review comments, rebases safe conflicts, and prints a status digest. Starts in observation mode; never auto-merges or applies suggestions. |
 | `/issue-supervisor` | ~5h loop: survey worktrees, restart stalled sessions, dispatch `auto`-labeled issues (or a `--file` checklist) to background sessions, groom the backlog. Opens draft PRs via `review-fix` + `open-pr`. |
@@ -55,6 +56,7 @@ plugins/skillet/
     ├── create-issue/SKILL.md
     ├── triage-issue/SKILL.md
     ├── sync-repo-labels/SKILL.md
+    ├── init-repo/SKILL.md
     ├── worktree-status/SKILL.md
     ├── pr-fleet-manager/SKILL.md
     ├── _shared/labels.json
