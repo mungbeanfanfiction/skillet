@@ -23,6 +23,7 @@ Personal marketplace of Claude Code skills.
 | `/triage-issue` | First-pass triage of an existing GitHub issue: assess, enrich a thin body, apply canonical labels (incl. `auto`), set a milestone, and post a triage comment. The inverse of `/create-issue`. |
 | `/sync-repo-labels` | Seed/sync the canonical label set into a repo (additive + drift-fix, never deletes). |
 | `/worktree-status` | Report every worktree's WIP narrative (from `STATUS.md`) plus live git state; flags stale worktrees. |
+| `/pr-fleet-manager` | Loop that watches your open PRs in the current repo: retries flaky CI, surfaces review comments, rebases safe conflicts, and prints a status digest. Starts in observation mode; never auto-merges or applies suggestions. |
 | `/issue-supervisor` | ~5h loop: survey worktrees, restart stalled sessions, dispatch `auto`-labeled issues (or a `--file` checklist) to background sessions, groom the backlog. Opens draft PRs via `review-fix` + `open-pr`. |
 | `/question-sweeper` | ~1h loop: route sessions parked on design questions to `docs/superpowers/questions/` + a GitHub comment, and re-dispatch once answered. |
 
@@ -55,6 +56,7 @@ plugins/skillet/
     ├── triage-issue/SKILL.md
     ├── sync-repo-labels/SKILL.md
     ├── worktree-status/SKILL.md
+    ├── pr-fleet-manager/SKILL.md
     ├── _shared/labels.json
     ├── issue-supervisor/
     │   ├── SKILL.md
