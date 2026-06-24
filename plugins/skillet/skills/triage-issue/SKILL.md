@@ -1,6 +1,6 @@
 ---
 name: triage-issue
-description: First-pass triage of an existing GitHub issue — assess it, enrich a thin body non-destructively, apply canonical labels (always including `auto`), set a milestone where derivable, and post a triage-summary comment. The inverse of `/create-issue`. Fully autonomous; does NOT do deep codebase investigation (that's `/explore-issue`). Use when an existing issue needs to be made actionable and queue-routable, or when the autonomous queue routes an un-triaged issue here.
+description: First-pass triage of an existing GitHub issue — assess it, enrich a thin body non-destructively, apply canonical labels (always including `auto`), set a milestone where derivable, and post a triage-summary comment. The inverse of `/create-issue`. Fully autonomous; does NOT do deep codebase investigation (that's `/explore-issue`). Use when an existing issue needs to be made actionable so `/issue-supervisor` can pick it up, or when running triage by hand on an un-triaged issue.
 argument-hint: "<issue-number>"
 ---
 
@@ -26,7 +26,7 @@ a worktree or branch; it operates directly against the repo it is invoked in.
 
 The argument is a GitHub issue number.
 
-- **Queue (unattended)** → the number is always passed explicitly.
+- **Queue (unattended)** → `/issue-supervisor` passes the number explicitly.
 - **Interactive, omitted** → infer the issue from the current branch name (a
   leading number, or an `issue-<n>` / `<n>-...` pattern) the way `review-fix` and
   `explore-issue` do. If no issue can be inferred, that is the one permitted
@@ -139,15 +139,18 @@ independent work units. When it does:
 
 - File each sub-issue as its own GitHub issue (via the same drafting + labeling
   rules as `/create-issue`), each cross-linked back with a `Part of #<epic>`
-  line and carrying its own canonical labels (incl. `auto`).
-- The epic itself keeps `auto` plus `epic`; its own type/area/priority reflect
-  the overall effort.
+  line and carrying its own canonical labels (incl. `auto`) — the children are
+  what `/issue-supervisor` dispatches.
+- The epic itself carries `epic` and **drops `auto`** — a decomposed parent is
+  tracking-only and must not be dispatched directly. Its own type/area/priority
+  reflect the overall effort.
 
 ### 6. Apply canonical labels
 
 Label taxonomy lives in `../_shared/labels.json` (read before labeling):
 
-- **Queue:** always include `auto`.
+- **Queue:** include `auto` — except a decomposed **epic** parent, which carries
+  `epic` and **omits `auto`** (it is tracking-only; its children carry `auto`).
 - **Type:** exactly one (`explore` / `feature` / `bug` / `chore` / `refactor`),
   plus `epic` when the issue was decomposed.
 - **Area:** zero or more of `frontend` / `backend` / `database` it clearly

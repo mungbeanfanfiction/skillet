@@ -11,5 +11,5 @@
   { "name": "p0",       "color": "b60205", "description": "Urgent / blocking" },
   { "name": "p1",       "color": "d93f0b", "description": "High priority" },
   { "name": "p2",       "color": "fef2c0", "description": "Normal / later" },
-  { "name": "epic",     "color": "c2e0c6", "description": "Parent issue tracking sub-issues" }
+  { "name": "epic",     "color": "c2e0c6", "description": "decomposed parent — not directly dispatched" }
 ]
