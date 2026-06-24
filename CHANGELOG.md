@@ -1,3 +1,9 @@
+## [0.11.1](https://github.com/mungbeanfanfiction/skillet/compare/v0.11.0...v0.11.1) (2026-06-24)
+
+### Bug Fixes
+
+* **skillet:** point /explore-issue queue refs at /issue-supervisor ([#21](https://github.com/mungbeanfanfiction/skillet/issues/21)) ([fb3c42b](https://github.com/mungbeanfanfiction/skillet/commit/fb3c42bac2b409970a40bcce6e2127df6c1f7287)), closes [#19](https://github.com/mungbeanfanfiction/skillet/issues/19)
+
 ## [0.11.0](https://github.com/mungbeanfanfiction/skillet/compare/v0.10.0...v0.11.0) (2026-06-24)
 
 ### Features
