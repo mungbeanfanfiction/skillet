@@ -17,9 +17,8 @@ PRS_JSON="$(gh pr list --repo "$REPO" --state open --limit 100 \
 
 OPEN_PR_BRANCHES="$(echo "$PRS_JSON" | jq -r '[.[].headRefName] | @json')"
 
-# Collect RAW filesystem facts only — no registry interpolation here. Ownership
-# and issue number are derived in the Python pass below, which already loads the
-# registry. This keeps untrusted worktree paths out of inlined Python literals.
+# Collect RAW filesystem facts only; ownership/issue are derived in the Python
+# pass below. Keeps untrusted worktree paths out of inlined Python literals.
 FACTS="[]"
 while read -r path; do
   [ -z "$path" ] && continue

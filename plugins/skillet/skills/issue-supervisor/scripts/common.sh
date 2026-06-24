@@ -3,9 +3,8 @@
 # Resolves repo-agnostic context (REPO, BASE), runtime-state dir, and lib dir.
 set -euo pipefail
 
-# LIB_DIR resolves relative to THIS file, so it works regardless of where the
-# plugin is installed. Scripts that source common.sh are in scripts/, so the
-# lib is one dir up.
+# Resolve relative to THIS file so it works regardless of where the plugin is
+# installed (callers live in scripts/, the lib is one dir up).
 COMMON_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SKILL_DIR="$(cd "$COMMON_DIR/.." && pwd)"
 LIB_DIR="$SKILL_DIR/lib"

@@ -5,8 +5,8 @@ import { join } from "node:path";
 
 const SCRIPT = join(import.meta.dirname, "..", "plugins", "skillet", "hooks", "block-verbose-comments.sh");
 
-// Run the hook with a tool_input payload; return { stdout, decision, reason }.
-// The hook always exits 0, emitting JSON only when it flags something.
+// The hook always exits 0, emitting JSON only when it flags something — hence
+// the empty-stdout case below means "no flag".
 function runHook(toolInput) {
   const input = JSON.stringify({ tool_input: toolInput, hook_event_name: "PreToolUse" });
   const stdout = execFileSync("bash", [SCRIPT], { input, encoding: "utf8" }).trim();
