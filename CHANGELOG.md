@@ -1,3 +1,9 @@
+## [0.9.1](https://github.com/mungbeanfanfiction/skillet/compare/v0.9.0...v0.9.1) (2026-06-24)
+
+### Bug Fixes
+
+* **skillet:** key block-main-checkout hook off the target file's directory ([#14](https://github.com/mungbeanfanfiction/skillet/issues/14)) ([d7db641](https://github.com/mungbeanfanfiction/skillet/commit/d7db641bf93330e10dc0f8570a3653ea7acba784))
+
 ## [0.9.0](https://github.com/mungbeanfanfiction/skillet/compare/v0.8.0...v0.9.0) (2026-06-24)
 
 ### Features
