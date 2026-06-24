@@ -43,9 +43,10 @@ Two skills under `plugins/skillet/skills/`, plus a shared tested Python package:
 plugins/skillet/skills/issue-supervisor/
   SKILL.md                       # ~5h loop procedure (model judgment)
   lib/supervisorlib/             # tested, stdlib-only deterministic logic
-    paths.py  registry.py  gitstatus.py  state.py  slots.py  gh.py
+    registry.py  gitstatus.py  state.py  slots.py  gh.py
     survey.py  spawn.py  questions.py  queue_source.py  runreport.py
-    (+ tests/, pytest.ini)   # task.md is handled inline in dispatch.sh, no taskmd.py
+    (+ tests/, pytest.ini)   # task.md handled inline in dispatch.sh (no taskmd.py);
+                             # runtime-state paths owned by scripts/common.sh (no paths.py)
   scripts/                       # thin injection-safe bash glue
     survey.sh  dispatch.sh  restart.sh  resume.sh
 plugins/skillet/skills/question-sweeper/
