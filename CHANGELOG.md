@@ -1,3 +1,9 @@
+## [0.14.0](https://github.com/mungbeanfanfiction/skillet/compare/v0.13.0...v0.14.0) (2026-06-24)
+
+### Features
+
+* **skillet:** add /init-repo skill that bootstraps a repo ([#23](https://github.com/mungbeanfanfiction/skillet/issues/23)) ([e312f6c](https://github.com/mungbeanfanfiction/skillet/commit/e312f6c5ba8dc3104f51020cfce3cdfa5b115c19)), closes [#10](https://github.com/mungbeanfanfiction/skillet/issues/10)
+
 ## [0.13.0](https://github.com/mungbeanfanfiction/skillet/compare/v0.12.1...v0.13.0) (2026-06-24)
 
 ### Features
