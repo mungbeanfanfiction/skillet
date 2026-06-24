@@ -1,5 +1,5 @@
 {
-  "description": "Skillet worktree hooks: guard against editing the primary checkout (PreToolUse), and record each worktree's work-in-progress status to .claude/status/STATUS.md (Stop)",
+  "description": "Skillet hooks: guard against editing the primary checkout and flag overly verbose comments (PreToolUse), and record each worktree's work-in-progress status to .claude/status/STATUS.md (Stop)",
   "hooks": {
     "PreToolUse": [
       {
@@ -9,6 +9,16 @@
             "type": "command",
             "command": "${CLAUDE_PLUGIN_ROOT}/hooks/block-main-checkout.sh",
             "statusMessage": "Checking this is a worktree, not the main checkout"
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/block-verbose-comments.sh",
+            "statusMessage": "Checking for overly verbose comments"
           }
         ]
       }
