@@ -1,3 +1,9 @@
+## [0.12.1](https://github.com/mungbeanfanfiction/skillet/compare/v0.12.0...v0.12.1) (2026-06-24)
+
+### Bug Fixes
+
+* **skillet:** issue-supervisor iteration — foreign state, repo-root anchoring, blocked_reason, headless review ([c1bead8](https://github.com/mungbeanfanfiction/skillet/commit/c1bead8f21ee10f5f6782b676363f4bc4cee96c7)), closes [#23](https://github.com/mungbeanfanfiction/skillet/issues/23) [#26](https://github.com/mungbeanfanfiction/skillet/issues/26)
+
 ## [0.12.0](https://github.com/mungbeanfanfiction/skillet/compare/v0.11.1...v0.12.0) (2026-06-24)
 
 ### Features
