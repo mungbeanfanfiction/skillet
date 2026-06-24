@@ -9,12 +9,23 @@ def test_build_argv_has_print_and_permission_flags():
     assert argv[argv.index("--add-dir") + 1] == "/wt/1"
 
 
-def test_dispatch_prompt_references_task_md_review_fix_and_escape_hatch():
+def test_dispatch_prompt_references_task_md_and_escape_hatch():
     p = spawn.dispatch_prompt(issue=489)
     assert "489" in p
     assert ".claude/task.md" in p
-    assert "review-fix" in p
     assert "question.md" in p
+
+
+def test_review_step_uses_a_subagent_not_a_slash_command():
+    # A headless `claude -p` session CANNOT invoke slash commands (/code-review),
+    # so the review step must dispatch the code-reviewer SUBAGENT (Agent/Task tool,
+    # which headless sessions can use) instead of "run the review-fix skill".
+    p = spawn.dispatch_prompt(issue=1)
+    assert "code-reviewer" in p           # the dispatchable subagent
+    assert "subagent" in p.lower()
+    # the OLD broken mechanism must be gone: don't tell the session to run the
+    # review-fix skill (which itself invokes the /code-review slash command).
+    assert "review-fix" not in p
 
 
 def test_dispatch_prompt_routes_explore_issues_to_explore_skill():

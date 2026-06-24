@@ -19,10 +19,14 @@ Run this pipeline for the task, logging each completed stage to the
    escape hatch below. If there is no safe guess and it is not a design question,
    stop and write the reason to the `## Progress log`.
 3. work — implement the change.
-4. review — run the `review-fix` skill on the working changes (it loops
-   /code-review + auto-fixes high/medium findings, cap 3 rounds). If it leaves
-   unsafe findings, they become PR comments; if it cannot get clean, stop and
-   summarize in the progress log — do NOT open a PR.
+4. review — review the working diff with a cap of 3 rounds. Each round: dispatch
+   the `pr-review-toolkit:code-reviewer` SUBAGENT (via the Agent/Task tool — a
+   headless `claude -p` session CANNOT invoke the `/code-review` slash command, so
+   do NOT try; use the subagent), pointing it at your uncommitted changes
+   (`git diff`). Apply fixes for the high/medium findings it reports, then re-run.
+   Exit when a round returns no high/medium findings, or after 3 rounds. If it is
+   still not clean after 3 rounds, stop and summarize the outstanding findings in
+   the progress log — do NOT open a PR.
 5. ci — detect and run the repo's check command (try in order: `make ci`,
    `make agent-ci`, `npm test`/`npm run test`, `pytest`, or a check documented in
    CLAUDE.md/README; if none, record "no check command found" and proceed). It

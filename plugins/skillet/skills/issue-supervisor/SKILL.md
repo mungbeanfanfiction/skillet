@@ -1,6 +1,6 @@
 ---
 name: issue-supervisor
-description: Supervise auto-labeled GitHub issues (or a markdown checklist) across git worktrees — survey ground truth, restart stalled background sessions, dispatch new work to fill 3 slots, groom the backlog. Repo-agnostic; reuses review-fix. Use when running the ~5h supervisor loop.
+description: Supervise auto-labeled GitHub issues (or a markdown checklist) across git worktrees — survey ground truth, restart stalled background sessions, dispatch new work to fill 3 slots, groom the backlog. Repo-agnostic. Use when running the ~5h supervisor loop.
 argument-hint: "[--label <name> | --file <path>]"
 ---
 
@@ -32,9 +32,14 @@ this cycle (reschedule). Never act on partial data.
 - `stalled` → run `scripts/restart.sh <path> <issue>`.
 - `needs-input` → leave alone (the sweeper owns it; never restart).
 - `pr-open` → leave to the human.
-- `blocked` → report with reason; do not touch.
+- `blocked` → report with its `blocked_reason`; do not touch. The reason tells you
+  what happened: `task_md_missing` (registry points at a worktree whose task.md is
+  gone — likely registry/disk drift, worth investigating), `restart_cap` (hit the
+  restart budget — a real repeated failure for a human), `done_no_pr` (session
+  marked done but never opened a PR — needs a human).
 - `working` → leave alone.
-NEVER touch worktrees with `"owned": false` — report them if stalled, nothing more.
+NEVER touch worktrees with `"owned": false` (state `foreign`) — list them in the
+report's FYI, nothing more.
 
 ## 4. Refill slots
 While `free_slots > 0` and the queue is non-empty, take the next item:
@@ -56,7 +61,7 @@ Run the **dispatch-time triage gate**:
 
 ## 5. Report + reschedule
 Print: in-flight (issue→state), restarted, PRs open, blocked w/ reason,
-needs-input count, foreign-stalled FYI, slots filled, backlog groomed. For the
+needs-input count, foreign-worktree FYI, slots filled, backlog groomed. For the
 human-readable narrative — especially the foreign-worktree FYI and staleness —
 run the `worktree-status` skill and fold its output into the report (it reads each
 worktree's `STATUS.md` + live git state). The automated classification above stays
@@ -68,4 +73,6 @@ does not drive restart/dispatch decisions. Append a run-report under
 ## Hard rules
 No merge, no push to the base branch, only DRAFT PRs (those happen inside
 sessions). Never git restore/checkout/clean/reset. Foreign worktrees are
-report-only. The per-issue review step uses the `review-fix` skill.
+report-only. The per-issue review step dispatches the
+`pr-review-toolkit:code-reviewer` subagent (a headless session can't invoke the
+`/code-review` slash command), applies its high/medium findings, cap 3 rounds.

@@ -10,10 +10,20 @@ COMMON_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SKILL_DIR="$(cd "$COMMON_DIR/.." && pwd)"
 LIB_DIR="$SKILL_DIR/lib"
 
-REPO_ROOT="$(git rev-parse --show-toplevel)"
+# This block is the single source of truth for runtime-state locations (registry,
+# locks, dispatched worktrees). The shell owns these because every consumer is a
+# script that needs them as bash vars; there is intentionally no paths.py.
+#
+# Anchor to the MAIN worktree, never the current one. `--show-toplevel` returns
+# whatever worktree the loop happens to run from, which would (a) nest dispatched
+# worktrees and (b) — worse — put runtime state (registry/locks) under a different
+# path per cwd, so the supervisor would lose track of worktrees it owns. The main
+# checkout is the parent of the shared .git common dir, stable from any worktree.
+REPO_ROOT="$(cd "$(dirname "$(git rev-parse --git-common-dir)")" && pwd)"
 STATE_DIR="$REPO_ROOT/.claude/issue-supervisor"
 REGISTRY="$STATE_DIR/registry.json"
 WORKTREES_DIR="$REPO_ROOT/.claude/worktrees"
+# Loop concurrency locks live alongside the registry: $STATE_DIR/{supervisor,sweeper}.lock
 
 fail() { printf '{"error": %s}\n' "$(jq -Rn --arg m "$1" '$m')"; exit 1; }
 
