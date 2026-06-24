@@ -26,7 +26,7 @@ function setupRepoWithWorktree() {
   return { main, wt };
 }
 
-// Run the hook script with the given cwd as the stdin `cwd`. Uses a throwaway transcript.
+// Throwaway empty transcript: this helper covers cases that don't assert on narrative.
 function runHook(cwd) {
   const transcript = join(mkdtempSync(join(tmpdir(), "wt-tr-")), "t.jsonl");
   writeFileSync(transcript, "");
@@ -50,7 +50,7 @@ test("does NOT write STATUS.md when cwd is the main checkout", () => {
   assert.equal(existsSync(statusPath), false, "main checkout must not get a STATUS.md");
 });
 
-// Build a transcript JSONL with user + assistant turns (Claude Code transcript shape).
+// Writes one JSONL line per turn, matching the Claude Code transcript shape the hook parses.
 function writeTranscript(lines) {
   const dir = mkdtempSync(join(tmpdir(), "wt-tr-"));
   const path = join(dir, "t.jsonl");

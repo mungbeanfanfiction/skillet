@@ -12,7 +12,7 @@ REPO="$(detect_repo)"; BASE="$(detect_base)"
 BRANCH="auto-${ISSUE}-${SLUG}"
 WT="$WORKTREES_DIR/$BRANCH"
 
-# Assign the issue to the current user (label source only).
+# Assign only for label-sourced tasks: file-sourced ones use a synthetic id with no GH issue behind it.
 if [ "$SOURCE" = "label" ]; then
   gh issue edit "$ISSUE" --repo "$REPO" --add-assignee @me >/dev/null 2>&1 || true
 fi
@@ -51,8 +51,8 @@ pickup
 EOF
 
 NOW="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-# Register the worktree. All values passed as argv (never interpolated into a
-# Python literal) so quotes in the path/title/etc. cannot break or inject.
+# Values passed as argv (never interpolated into a Python literal) so quotes in
+# the path/title/etc. cannot break or inject.
 python3 - "$LIB_DIR" "$REGISTRY" "$ISSUE" "$WT" "$BRANCH" "$SOURCE" "$NOW" <<'PY'
 import sys
 sys.path.insert(0, sys.argv[1])

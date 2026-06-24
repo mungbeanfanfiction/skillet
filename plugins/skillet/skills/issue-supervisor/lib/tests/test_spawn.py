@@ -29,8 +29,7 @@ def test_review_step_uses_a_subagent_not_a_slash_command():
 
 
 def test_dispatch_prompt_routes_explore_issues_to_explore_skill():
-    # every dispatch prompt carries the explore routing preamble, so a session
-    # whose task.md is labeled `explore` runs /explore-issue instead of implementing.
+    # routing preamble ships in every prompt so `explore`-labeled tasks divert to /explore-issue.
     p = spawn.dispatch_prompt(issue=489)
     assert "explore-issue" in p
     assert "explore" in p.lower()
