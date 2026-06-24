@@ -1,3 +1,9 @@
+## [0.11.0](https://github.com/mungbeanfanfiction/skillet/compare/v0.10.0...v0.11.0) (2026-06-24)
+
+### Features
+
+* **skillet:** add /triage-issue first-pass triage skill ([#17](https://github.com/mungbeanfanfiction/skillet/issues/17)) ([27f3586](https://github.com/mungbeanfanfiction/skillet/commit/27f35869a180b202f6ade456f65cdb4017462e81))
+
 ## [0.10.0](https://github.com/mungbeanfanfiction/skillet/compare/v0.9.1...v0.10.0) (2026-06-24)
 
 ### Features
