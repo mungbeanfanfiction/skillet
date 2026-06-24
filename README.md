@@ -31,6 +31,7 @@ Personal marketplace of Claude Code skills.
 | Hook | What it does |
 |---|---|
 | Worktree guard (`PreToolUse`) | Before any `Edit`/`Write`/`NotebookEdit`, asks for confirmation if you're editing the **primary checkout** instead of a git worktree. Prevents concurrent sessions from clobbering each other in the shared main checkout. Worktrees proceed without a prompt. |
+| Verbose-comment guard (`PreToolUse`) | Before an `Edit`/`Write` to a source file, asks for confirmation when the edit adds **overly verbose, low-value comments** — line-by-line narration that restates the code, `Step N` play-by-play, or comment-heavy diffs. Nudges comments toward explaining *why*, not *what*. Clean edits proceed without a prompt. |
 
 ## Layout
 
@@ -40,7 +41,9 @@ plugins/skillet/
 ├── plugin.json                   # plugin manifest
 ├── hooks/
 │   ├── hooks.json                # hook declarations
-│   └── block-main-checkout.sh    # worktree-guard logic
+│   ├── block-main-checkout.sh    # worktree-guard logic
+│   ├── block-verbose-comments.sh # verbose-comment guard
+│   └── worktree-status.sh        # writes STATUS.md per worktree
 └── skills/
     ├── open-pr/SKILL.md
     ├── create-worktree/SKILL.md
