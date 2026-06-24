@@ -32,7 +32,11 @@ this cycle (reschedule). Never act on partial data.
 - `stalled` → run `scripts/restart.sh <path> <issue>`.
 - `needs-input` → leave alone (the sweeper owns it; never restart).
 - `pr-open` → leave to the human.
-- `blocked` → report with reason; do not touch.
+- `blocked` → report with its `blocked_reason`; do not touch. The reason tells you
+  what happened: `task_md_missing` (registry points at a worktree whose task.md is
+  gone — likely registry/disk drift, worth investigating), `restart_cap` (hit the
+  restart budget — a real repeated failure for a human), `done_no_pr` (session
+  marked done but never opened a PR — needs a human).
 - `working` → leave alone.
 NEVER touch worktrees with `"owned": false` (state `foreign`) — list them in the
 report's FYI, nothing more.

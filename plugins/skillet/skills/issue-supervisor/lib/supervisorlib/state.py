@@ -33,5 +33,23 @@ def classify(facts: dict) -> WorktreeState:
     return WorktreeState.STALLED
 
 
+def blocked_reason(facts: dict):
+    """Why a worktree is BLOCKED, or None if it isn't. Mirrors classify()'s
+    precedence so the reason always matches the verdict. Lets the report
+    distinguish registry/disk drift from a genuine give-up without guessing:
+      - task_md_missing : registry points at a worktree with no task.md (drift)
+      - restart_cap     : hit the restart budget — a real, repeated failure
+      - done_no_pr      : marked done but never opened a PR — needs a human
+    """
+    if classify(facts) is not WorktreeState.BLOCKED:
+        return None
+    if not facts["task_md_present"]:
+        return "task_md_missing"
+    if facts["restart_count"] >= RESTART_CAP:
+        return "restart_cap"
+    # classify() returned BLOCKED and the two above didn't match → done-but-no-PR.
+    return "done_no_pr"
+
+
 def is_in_flight(s: WorktreeState) -> bool:
     return s in (WorktreeState.WORKING, WorktreeState.STALLED)

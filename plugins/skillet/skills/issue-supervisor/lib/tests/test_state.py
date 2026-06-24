@@ -45,3 +45,29 @@ def test_in_flight_only_for_working_and_stalled():
     assert state.is_in_flight(WorktreeState.NEEDS_INPUT) is False
     assert state.is_in_flight(WorktreeState.PR_OPEN) is False
     assert state.is_in_flight(WorktreeState.BLOCKED) is False
+
+
+def test_blocked_reason_none_when_not_blocked():
+    assert state.blocked_reason(make(process_alive=True)) is None          # working
+    assert state.blocked_reason(make()) is None                            # stalled
+    assert state.blocked_reason(make(has_question_md=True)) is None         # needs-input
+
+
+def test_blocked_reason_task_md_missing():
+    # registry points at a worktree whose task.md vanished → possible drift
+    assert state.blocked_reason(make(task_md_present=False)) == "task_md_missing"
+
+
+def test_blocked_reason_restart_cap():
+    assert state.blocked_reason(make(restart_count=2)) == "restart_cap"
+
+
+def test_blocked_reason_done_no_pr():
+    assert state.blocked_reason(make(task_complete=True)) == "done_no_pr"
+
+
+def test_blocked_reason_precedence_matches_classify():
+    # task_md_missing wins over restart_cap (same order as classify's checks)
+    facts = make(task_md_present=False, restart_count=2, task_complete=True)
+    assert state.classify(facts) == WorktreeState.BLOCKED
+    assert state.blocked_reason(facts) == "task_md_missing"

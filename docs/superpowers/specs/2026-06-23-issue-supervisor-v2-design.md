@@ -160,6 +160,11 @@ handling.
 - Autonomous issue creation bounded: ≤6 per split, `epic` idempotency,
   `loop-generated` provenance.
 - Atomic registry writes; survey fails closed (`{"error":...}` → STOP).
+- An owned worktree whose `task.md` has gone missing → `blocked` (never guessed),
+  surfaced with `blocked_reason: task_md_missing` so the operator can tell
+  registry/disk drift apart from a genuine give-up (`restart_cap`) or a
+  done-but-no-PR worktree (`done_no_pr`). The supervisor never touches a `blocked`
+  worktree — it only reports the reason.
 
 ## Reuse of existing skillet skills
 
