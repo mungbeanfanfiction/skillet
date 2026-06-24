@@ -34,7 +34,8 @@ this cycle (reschedule). Never act on partial data.
 - `pr-open` → leave to the human.
 - `blocked` → report with reason; do not touch.
 - `working` → leave alone.
-NEVER touch worktrees with `"owned": false` — report them if stalled, nothing more.
+NEVER touch worktrees with `"owned": false` (state `foreign`) — list them in the
+report's FYI, nothing more.
 
 ## 4. Refill slots
 While `free_slots > 0` and the queue is non-empty, take the next item:
@@ -56,7 +57,7 @@ Run the **dispatch-time triage gate**:
 
 ## 5. Report + reschedule
 Print: in-flight (issue→state), restarted, PRs open, blocked w/ reason,
-needs-input count, foreign-stalled FYI, slots filled, backlog groomed. For the
+needs-input count, foreign-worktree FYI, slots filled, backlog groomed. For the
 human-readable narrative — especially the foreign-worktree FYI and staleness —
 run the `worktree-status` skill and fold its output into the report (it reads each
 worktree's `STATUS.md` + live git state). The automated classification above stays

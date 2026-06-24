@@ -9,6 +9,7 @@ class WorktreeState(str, Enum):
     STALLED = "stalled"
     PR_OPEN = "pr-open"
     BLOCKED = "blocked"
+    FOREIGN = "foreign"  # not owned by the loop — report-only, never classified/touched
 
 
 RESTART_CAP = 2
