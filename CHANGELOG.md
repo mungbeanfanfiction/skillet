@@ -1,3 +1,9 @@
+## [0.12.0](https://github.com/mungbeanfanfiction/skillet/compare/v0.11.1...v0.12.0) (2026-06-24)
+
+### Features
+
+* **skillet:** add PreToolUse hook to flag overly verbose comments ([#25](https://github.com/mungbeanfanfiction/skillet/issues/25)) ([a02bf4d](https://github.com/mungbeanfanfiction/skillet/commit/a02bf4d2798f6a341bc65df686d5e2137c7ac7b4))
+
 ## [0.11.1](https://github.com/mungbeanfanfiction/skillet/compare/v0.11.0...v0.11.1) (2026-06-24)
 
 ### Bug Fixes
