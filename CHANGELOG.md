@@ -1,3 +1,9 @@
+## [0.14.1](https://github.com/mungbeanfanfiction/skillet/compare/v0.14.0...v0.14.1) (2026-06-24)
+
+### Bug Fixes
+
+* **skillet:** harden block-main-checkout hook ([#30](https://github.com/mungbeanfanfiction/skillet/issues/30)) ([aed233b](https://github.com/mungbeanfanfiction/skillet/commit/aed233b29d5318dae2fe12725b3fcb145730866d))
+
 ## [0.14.0](https://github.com/mungbeanfanfiction/skillet/compare/v0.13.0...v0.14.0) (2026-06-24)
 
 ### Features
