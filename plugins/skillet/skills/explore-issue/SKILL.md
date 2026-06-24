@@ -1,6 +1,6 @@
 ---
 name: explore-issue
-description: Deep-dive a single GitHub issue — create a worktree off latest main, fan out parallel read-only Explore agents, synthesize findings into a committed spec, open a draft PR, and comment on the issue. Use when an issue needs investigation (a spike, an open question, a "why does X" / "should we Y") rather than a direct implementation, or when the autonomous queue routes an `explore`-labeled issue here.
+description: Deep-dive a single GitHub issue — create a worktree off latest main, fan out parallel read-only Explore agents, synthesize findings into a committed spec, open a draft PR, and comment on the issue. Use when an issue needs investigation (a spike, an open question, a "why does X" / "should we Y") rather than a direct implementation, or when `/issue-supervisor` routes an `explore`-labeled issue here.
 argument-hint: "<issue-number>"
 ---
 
@@ -9,7 +9,7 @@ argument-hint: "<issue-number>"
 Deep-dive **one** GitHub issue: investigate it thoroughly against the codebase
 and produce a durable findings spec — without writing application code.
 
-This skill is built to run **both interactively and unattended**. `/drain-queue`
+This skill is built to run **both interactively and unattended**. `/issue-supervisor`
 routes any issue carrying the `explore` label here instead of its normal
 implement-it path. Because it must work in that unattended pipeline, it
 **never asks the user to resolve ambiguity** — every uncertainty it cannot
@@ -186,7 +186,7 @@ still exist. Record the failure in the returned report.
 
 ### 8. Return a structured result
 
-Return a structured result so `/drain-queue` can consume it the same way as its
+Return a structured result so `/issue-supervisor` can consume it the same way as its
 other subagent results:
 
 - `done` — include the PR URL, the spec path, and a one-line summary.
@@ -195,12 +195,13 @@ other subagent results:
 
 ## Routing contract (queue integration)
 
-`/drain-queue` distinguishes explore issues by **GitHub label**: an issue labeled
-`explore` is routed to this skill instead of the normal implement-it path.
-
-> **Pending separate work:** the actual `/drain-queue` edit that performs this
-> routing is handled separately and is **not** part of this skill. This section
-> documents the contract the queue relies on.
+`/issue-supervisor` distinguishes explore issues by **GitHub label**: at dispatch
+time its triage gate sees an issue labeled `explore` and dispatches it with the
+labels passed through, so the session self-routes to this skill instead of the
+normal implement-it path (and skips scope decomposition — exploration is one
+focused investigation). This section documents the contract that routing relies
+on: the supervisor passes the issue number explicitly, this skill consumes it,
+and it returns a `done`/`skipped` structured result the supervisor can read back.
 
 ## Never stall
 
