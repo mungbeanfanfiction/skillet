@@ -1,3 +1,9 @@
+## [0.10.0](https://github.com/mungbeanfanfiction/skillet/compare/v0.9.1...v0.10.0) (2026-06-24)
+
+### Features
+
+* **skillet:** add update-issue skill + open-pr issue comment ([#16](https://github.com/mungbeanfanfiction/skillet/issues/16)) ([15e9bed](https://github.com/mungbeanfanfiction/skillet/commit/15e9bed7d1a7cb6b714ab6a2ff5e906cf3048b08))
+
 ## [0.9.1](https://github.com/mungbeanfanfiction/skillet/compare/v0.9.0...v0.9.1) (2026-06-24)
 
 ### Bug Fixes
