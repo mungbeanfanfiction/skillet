@@ -1,3 +1,9 @@
+## [0.15.0](https://github.com/mungbeanfanfiction/skillet/compare/v0.14.1...v0.15.0) (2026-06-24)
+
+### Features
+
+* **skillet:** block git commit on the default branch ([#31](https://github.com/mungbeanfanfiction/skillet/issues/31)) ([9e48f54](https://github.com/mungbeanfanfiction/skillet/commit/9e48f54fd70d8adee4a0c35b48324c4ea9f39a74))
+
 ## [0.14.1](https://github.com/mungbeanfanfiction/skillet/compare/v0.14.0...v0.14.1) (2026-06-24)
 
 ### Bug Fixes
