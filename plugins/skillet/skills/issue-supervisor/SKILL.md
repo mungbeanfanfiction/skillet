@@ -14,15 +14,15 @@ Acquire `<repo>/.claude/issue-supervisor/supervisor.lock` (create the file; if i
 exists and is <6h old, exit — another cycle is running). Remove it at the end.
 
 ## 1. Bootstrap (first run only)
-Seed the canonical label taxonomy with the `/sync-repo-labels` skill (it creates
-`auto`, `explore`, type/area/priority labels in the current repo, additive and
-drift-fixing). Then create the three supervisor-internal lifecycle labels that are
-NOT part of the canonical set:
-`gh label create epic --description "decomposed parent — not directly dispatched" --color 5319E7`,
-`gh label create loop-generated --description "auto-created sub-issue" --color BFD4F2`,
-`gh label create needs-input --description "session parked on a design question" --color D93F0B`
-(each `|| true` if it already exists). Then present open issues and apply `auto`
-only to the ones the user approves. Do NOT bulk-label.
+Seed the canonical label taxonomy with the `/sync-repo-labels` skill. It reads
+`_shared/labels.json` (the single source of truth for names, colors, and
+descriptions) and creates/drift-fixes every label in the current repo, additive
+and non-destructive. This includes the supervisor's lifecycle labels — `epic`,
+`loop-generated`, and `needs-input` — which now live in `labels.json` alongside
+`auto`, `explore`, and the type/area/priority set. Do NOT create these labels
+inline with hardcoded hex colors; `/sync-repo-labels` owns them. Then present
+open issues and apply `auto` only to the ones the user approves. Do NOT
+bulk-label.
 
 ## 2. Survey
 Run `scripts/survey.sh`. If it returns `{"error": ...}`, report the error and STOP
