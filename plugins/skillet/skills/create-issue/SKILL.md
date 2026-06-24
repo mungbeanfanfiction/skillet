@@ -117,10 +117,24 @@ rm "$BODY_FILE"
 
 Return the issue URL to the user.
 
+### 6. Set a milestone (optional)
+
+If a milestone is clearly derivable — the conversation references a release or
+target, or there is an obvious current/open milestone the issue belongs to — set
+it when creating the issue by adding `--milestone "<title>"` to the
+`gh issue create` call above, or afterward:
+
+```bash
+gh issue edit <number> --milestone "<title>"
+```
+
+If no milestone clearly applies, omit it — do not guess. **Never set an
+assignee.**
+
 ## Do not
 
 - Do not ask for confirmation — this skill is fully autonomous.
 - Do not recolor or edit labels that already exist.
-- Do not add assignees, milestones, or projects.
+- Do not add assignees or projects. (Milestones are allowed — see step 6.)
 - Do not create a worktree or branch — this skill only files the issue.
 - Do not invent acceptance criteria the conversation doesn't support.
