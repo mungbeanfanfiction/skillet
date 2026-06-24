@@ -1,1 +1,10 @@
 node_modules/
+
+# Python artifacts from supervisorlib tests
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# issue-supervisor runtime state (also gitignored in target repos at runtime)
+.claude/issue-supervisor/
+.claude/worktrees/
