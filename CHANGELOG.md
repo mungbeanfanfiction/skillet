@@ -1,3 +1,9 @@
+## [0.13.0](https://github.com/mungbeanfanfiction/skillet/compare/v0.12.1...v0.13.0) (2026-06-24)
+
+### Features
+
+* **skillet:** add pr-fleet-manager skill ([#27](https://github.com/mungbeanfanfiction/skillet/issues/27)) ([4e95909](https://github.com/mungbeanfanfiction/skillet/commit/4e95909d0367d536207b77984dc9748f32887945))
+
 ## [0.12.1](https://github.com/mungbeanfanfiction/skillet/compare/v0.12.0...v0.12.1) (2026-06-24)
 
 ### Bug Fixes
