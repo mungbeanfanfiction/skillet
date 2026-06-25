@@ -18,7 +18,14 @@ Run this pipeline for the task, logging each completed stage to the
    question (API shape, product behavior, irreversible/ambiguous choice) use the
    escape hatch below. If there is no safe guess and it is not a design question,
    stop and write the reason to the `## Progress log`.
-3. work — implement the change.
+3. work — implement the change. Keep the changeset SMALL: a single PR must change
+   no more than 400 lines (added + deleted) vs the base branch. Check your size as
+   you go with `git diff --numstat origin/<base>...HEAD | awk '$1!="-"&&$2!="-"{s+=$1+$2}END{print s+0}'`.
+   If the work cannot fit under 400 lines, split it into separate, logically
+   focused PRs (e.g. data model, then API, then UI; or refactor separately from
+   new behavior) — land the smallest/most-foundational chunk first and follow up
+   with the rest, rather than shipping one oversized PR. The `open-pr` skill
+   HARD-BLOCKS PRs over 400 lines, so plan for this up front.
 4. review — review the working diff with a cap of 3 rounds. Each round: dispatch
    the `pr-review-toolkit:code-reviewer` SUBAGENT (via the Agent/Task tool — a
    headless `claude -p` session CANNOT invoke the `/code-review` slash command, so

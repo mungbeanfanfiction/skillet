@@ -58,6 +58,49 @@ git rev-list --count origin/$BASE..HEAD
 
 If `0`, stop — there's nothing to PR.
 
+### 2a. Enforce the 400-line PR size limit
+
+PRs over ~400 changed lines are hard to review and hide bugs. Before pushing or
+opening anything, count the lines this branch changes vs the base branch and
+**hard-block** if the total exceeds **400**.
+
+"Lines changed" = added + deleted lines (the same metric GitHub shows as a PR's
+size), summed across all non-excluded files. Sum the last two columns of
+`git diff --numstat` against the **merge base** (`...`, so changes that landed on
+base after this branch forked don't inflate the count), skipping binary files
+(which report `-`). Exclude generated/lockfiles that legitimately balloon a diff
+but aren't hand-reviewed — this is the authoritative count, and it matches the
+`oversize_diff` flag the `issue-supervisor` survey computes the same way:
+
+```bash
+CHANGED=$(git diff --numstat origin/$BASE...HEAD \
+  -- . ':(exclude)**/*.lock' ':(exclude)**/*.freezed.dart' ':(exclude)**/*.g.dart' \
+  | awk '$1 != "-" && $2 != "-" { sum += $1 + $2 } END { print sum + 0 }')
+echo "$CHANGED lines changed vs origin/$BASE"
+```
+
+(Drop the `:(exclude)...` pathspecs if you want the raw, all-files count, but
+compare the **excluded** number against the 400 limit so a regenerated lockfile
+or `*.g.dart` doesn't block an otherwise-small PR.)
+
+If `CHANGED > 400`, **stop — do not push, do not open a PR.** Tell the user (or,
+in non-interactive mode, write the reason to the session's progress log and exit
+cleanly) that the change is too large and must be split. Give concrete split
+guidance:
+
+- Identify logical chunks from `git diff --stat origin/$BASE..HEAD` — group by
+  directory, feature, or layer (e.g. data model vs API vs UI; refactor vs new
+  behavior).
+- Land each chunk as its own branch + PR, smallest/most-foundational first, so
+  later PRs stack on merged work.
+- Pure mechanical churn (renames, formatting, generated files) belongs in its own
+  PR separate from behavioral changes, so reviewers can skim it.
+- If the work genuinely cannot be decomposed (e.g. one large generated file or an
+  atomic migration), say so explicitly and let the user decide to override —
+  never silently open an oversized PR.
+
+This limit is intentionally hard: do not open the PR and then warn. Block first.
+
 ### 3. Push the branch if needed
 
 ```bash
