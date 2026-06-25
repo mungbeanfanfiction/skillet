@@ -1,3 +1,27 @@
+## [0.19.0](https://github.com/mungbeanfanfiction/skillet/compare/v0.18.0...v0.19.0) (2026-06-25)
+
+### Features
+
+* **skillet:** 38 - add audit-permissions skill ([#44](https://github.com/mungbeanfanfiction/skillet/issues/44)) ([47ee52a](https://github.com/mungbeanfanfiction/skillet/commit/47ee52a961a1af3b193ee9b91697bd1f7f8c4d94)), closes [#38](https://github.com/mungbeanfanfiction/skillet/issues/38)
+
+## [0.18.0](https://github.com/mungbeanfanfiction/skillet/compare/v0.17.0...v0.18.0) (2026-06-25)
+
+### Features
+
+* **skillet:** 36 - watch open PRs for comments + conflicts ([#45](https://github.com/mungbeanfanfiction/skillet/issues/45)) ([8117b85](https://github.com/mungbeanfanfiction/skillet/commit/8117b859783b1e7b89f2027f64d39ca7257b65da)), closes [#35](https://github.com/mungbeanfanfiction/skillet/issues/35) [#34](https://github.com/mungbeanfanfiction/skillet/issues/34) [#36](https://github.com/mungbeanfanfiction/skillet/issues/36)
+
+## [0.17.0](https://github.com/mungbeanfanfiction/skillet/compare/v0.16.0...v0.17.0) (2026-06-25)
+
+### Features
+
+* **skillet:** add resolve-conflicts skill ([#40](https://github.com/mungbeanfanfiction/skillet/issues/40)) ([1037e3e](https://github.com/mungbeanfanfiction/skillet/commit/1037e3e8f477b33a5c367bdca99a246946113d04)), closes [#33](https://github.com/mungbeanfanfiction/skillet/issues/33) [#34](https://github.com/mungbeanfanfiction/skillet/issues/34)
+
+## [0.16.0](https://github.com/mungbeanfanfiction/skillet/compare/v0.15.0...v0.16.0) (2026-06-25)
+
+### Features
+
+* **skillet:** 35 - standalone check-pr-comments skill ([#41](https://github.com/mungbeanfanfiction/skillet/issues/41)) ([7771e74](https://github.com/mungbeanfanfiction/skillet/commit/7771e74c1bce00e72590a3269f0953580a0d176d)), closes [#36](https://github.com/mungbeanfanfiction/skillet/issues/36) [#35](https://github.com/mungbeanfanfiction/skillet/issues/35)
+
 ## [0.15.0](https://github.com/mungbeanfanfiction/skillet/compare/v0.14.1...v0.15.0) (2026-06-24)
 
 ### Features

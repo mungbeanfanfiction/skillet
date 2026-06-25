@@ -46,3 +46,25 @@ def issues(registry_path) -> list:
 def issue_for_path(registry_path, path: str):
     return next((w["issue"] for w in load(registry_path)["worktrees"]
                  if w["path"] == path), None)
+
+
+def get_pr_checkpoint(registry_path, path: str) -> dict:
+    """The PR-watch de-dup checkpoint for an owned worktree (empty if none).
+
+    Stored inline on the worktree entry under `pr_checkpoint` so it travels with
+    the worktree and is dropped when the worktree is removed. See
+    `supervisorlib.prwatch` for the shape (`comments_since`, `conflict_oid`)."""
+    w = next((w for w in load(registry_path)["worktrees"]
+              if w["path"] == path), None)
+    return w.get("pr_checkpoint", {}) if w else {}
+
+
+def set_pr_checkpoint(registry_path, path: str, checkpoint: dict) -> None:
+    """Persist the PR-watch checkpoint for an owned worktree. No-op if the path
+    isn't registered — never invent an entry for a foreign worktree."""
+    data = load(registry_path)
+    for w in data["worktrees"]:
+        if w["path"] == path:
+            w["pr_checkpoint"] = checkpoint
+            _save(registry_path, data)
+            return

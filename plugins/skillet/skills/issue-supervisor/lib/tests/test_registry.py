@@ -47,3 +47,35 @@ def test_add_is_atomic_no_partial_file(tmp_path):
     registry.add(p, issue=1, path="/wt/a", branch="a", source="label", created_at="t")
     assert p.exists()
     assert not (tmp_path / "registry.json.tmp").exists()
+
+
+def test_pr_checkpoint_defaults_empty(tmp_path):
+    p = tmp_path / "registry.json"
+    registry.add(p, issue=1, path="/wt/a", branch="a", source="label", created_at="t")
+    assert registry.get_pr_checkpoint(p, "/wt/a") == {}
+    # unknown path → empty, never raises
+    assert registry.get_pr_checkpoint(p, "/wt/missing") == {}
+
+
+def test_pr_checkpoint_set_then_get_roundtrip(tmp_path):
+    p = tmp_path / "registry.json"
+    registry.add(p, issue=1, path="/wt/a", branch="a", source="label", created_at="t")
+    cp = {"comments_since": "2026-06-25T12:00:00Z", "conflict_oid": "b1:h1"}
+    registry.set_pr_checkpoint(p, "/wt/a", cp)
+    assert registry.get_pr_checkpoint(p, "/wt/a") == cp
+
+
+def test_pr_checkpoint_set_is_noop_for_unregistered_path(tmp_path):
+    p = tmp_path / "registry.json"
+    registry.add(p, issue=1, path="/wt/a", branch="a", source="label", created_at="t")
+    registry.set_pr_checkpoint(p, "/wt/foreign", {"comments_since": "t"})
+    # no entry invented for a foreign worktree
+    assert all(w["path"] != "/wt/foreign" for w in registry.load(p)["worktrees"])
+
+
+def test_pr_checkpoint_dropped_with_worktree_removal(tmp_path):
+    p = tmp_path / "registry.json"
+    registry.add(p, issue=1, path="/wt/a", branch="a", source="label", created_at="t")
+    registry.set_pr_checkpoint(p, "/wt/a", {"conflict_oid": "b1:h1"})
+    registry.remove(p, "/wt/a")
+    assert registry.get_pr_checkpoint(p, "/wt/a") == {}

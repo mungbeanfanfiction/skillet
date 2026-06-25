@@ -18,14 +18,16 @@ Personal marketplace of Claude Code skills.
 | `/delete-worktree` | Safely remove a worktree (checks for uncommitted/unpushed work). |
 | `/cleanup-worktrees` | Survey all worktrees and bulk-remove ones whose branches are merged or whose PRs are closed. |
 | `/review-fix` | Review a PR with `/code-review` and auto-fix high/medium findings, looping until clean; unsafe findings become PR comments. |
+| `/resolve-conflicts` | Bring a PR up to date with its base and auto-resolve only safe conflicts (lock/generated/import-only), leaving the branch pushable; escalate cleanly when a conflict needs human judgment. |
 | `/explore-issue` | Deep-dive one GitHub issue: worktree off main, parallel Explore agents, findings spec, draft PR, and an issue comment. Routed by the `explore` label. |
 | `/create-issue` | Create a GitHub issue from the conversation, auto-labeled (queue/type/area/priority); creates any missing labels first. |
 | `/triage-issue` | First-pass triage of an existing GitHub issue: assess, enrich a thin body, apply canonical labels (incl. `auto`), set a milestone, and post a triage comment. The inverse of `/create-issue`. |
 | `/sync-repo-labels` | Seed/sync the canonical label set into a repo (additive + drift-fix, never deletes). |
 | `/init-repo` | Bootstrap a repo to the standard setup: seed labels (via `/sync-repo-labels`), add a PR template if missing, optionally protect the default branch. Additive + idempotent. |
 | `/worktree-status` | Report every worktree's WIP narrative (from `STATUS.md`) plus live git state; flags stale worktrees. |
+| `/check-pr-comments` | One-shot: list a PR's new/unaddressed comments — inline review threads, review summaries, and top-level PR comments — excluding the agent's own, and distinguishing unaddressed from already-resolved. Read-only. |
 | `/pr-fleet-manager` | Loop that watches your open PRs in the current repo: retries flaky CI, surfaces review comments, rebases safe conflicts, and prints a status digest. Starts in observation mode; never auto-merges or applies suggestions. |
-| `/issue-supervisor` | ~5h loop: survey worktrees, restart stalled sessions, dispatch `auto`-labeled issues (or a `--file` checklist) to background sessions, groom the backlog. Opens draft PRs via `review-fix` + `open-pr`. |
+| `/issue-supervisor` | ~5h loop: survey worktrees, restart stalled sessions, dispatch `auto`-labeled issues (or a `--file` checklist) to background sessions, groom the backlog. Watches its own open PRs each pass — dispatches follow-up sessions into a PR's worktree for new comments (via `check-pr-comments`) or merge conflicts (via `resolve-conflicts`), with per-PR de-dup. Opens draft PRs via `review-fix` + `open-pr`. |
 | `/question-sweeper` | ~1h loop: route sessions parked on design questions to `docs/superpowers/questions/` + a GitHub comment, and re-dispatch once answered. |
 
 ## Hooks
@@ -52,6 +54,7 @@ plugins/skillet/
     ├── delete-worktree/SKILL.md
     ├── cleanup-worktrees/SKILL.md
     ├── review-fix/SKILL.md
+    ├── resolve-conflicts/SKILL.md
     ├── explore-issue/SKILL.md
     ├── create-issue/SKILL.md
     ├── triage-issue/SKILL.md
@@ -59,6 +62,9 @@ plugins/skillet/
     ├── init-repo/SKILL.md
     ├── worktree-status/SKILL.md
     ├── pr-fleet-manager/SKILL.md
+    ├── check-pr-comments/
+    │   ├── SKILL.md
+    │   └── scripts/check-pr-comments.sh
     ├── _shared/labels.json
     ├── issue-supervisor/
     │   ├── SKILL.md
