@@ -1,3 +1,9 @@
+## [0.18.0](https://github.com/mungbeanfanfiction/skillet/compare/v0.17.0...v0.18.0) (2026-06-25)
+
+### Features
+
+* **skillet:** 36 - watch open PRs for comments + conflicts ([#45](https://github.com/mungbeanfanfiction/skillet/issues/45)) ([8117b85](https://github.com/mungbeanfanfiction/skillet/commit/8117b859783b1e7b89f2027f64d39ca7257b65da)), closes [#35](https://github.com/mungbeanfanfiction/skillet/issues/35) [#34](https://github.com/mungbeanfanfiction/skillet/issues/34) [#36](https://github.com/mungbeanfanfiction/skillet/issues/36)
+
 ## [0.17.0](https://github.com/mungbeanfanfiction/skillet/compare/v0.16.0...v0.17.0) (2026-06-25)
 
 ### Features
