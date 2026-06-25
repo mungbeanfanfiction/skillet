@@ -129,8 +129,13 @@ from supervisorlib import registry
 registry.set_pr_checkpoint(sys.argv[2], sys.argv[3], json.loads(sys.argv[4]))
 PY
 
+  # Stamp the canonical PR URL so the SKILL digest can render `#$PR` as a
+  # clickable link. Built inline (no subprocess): $REPO is a known-good slug and
+  # $PR is validated numeric. supervisorlib.links is the tested source of this
+  # shape — keep the two in sync.
   jq -nc --arg pr "$PR" --arg branch "$BRANCH" --arg reasons "$REASONS" \
-    '{pr: ($pr|tonumber), branch: $branch, reasons: ($reasons|split(","))}'
+    --arg url "https://github.com/$REPO/pull/$PR" \
+    '{pr: ($pr|tonumber), pr_url: $url, branch: $branch, reasons: ($reasons|split(","))}'
   echo "dispatched PR #$PR ($BRANCH) → $WT [$REASONS]" >&2
 }
 

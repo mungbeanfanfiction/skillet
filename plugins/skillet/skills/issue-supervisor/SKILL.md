@@ -114,10 +114,14 @@ line that's empty/zero rather than printing "none"):
 ```
 survey: N working, M stalled, K needs-input, J pr-open  (P foreign) · slots F/3
 acted: restarted #12 #34 · dispatched #56 #78 · groomed #90→epic (+3 sub-issues)
-pr-watch: #43 comment-dispatched · #45 conflict-dispatched
+pr-watch: [#43](https://github.com/owner/name/pull/43) comment-dispatched · [#45](https://github.com/owner/name/pull/45) conflict-dispatched
 oversize: #56 (612 lines) — needs split
 blocked: #41 restart_cap
 ```
+Render every **PR** reference as a markdown link — `[#N](https://github.com/<repo>/pull/N)`
+— so PRs are clickable, not bare `#N` text. `scripts/pr-watch.sh` already emits a
+`pr_url` field on each acted-on PR's JSON line; use it verbatim. Issue references
+(dispatched/restarted/groomed/blocked) stay bare `#N` — only PRs become links.
 Lead with the counts, then the verbs (restarted / dispatched / groomed / blocked /
 pr-watch). Do NOT dump per-worktree narration, full STATUS.md text, or unchanged
 "working" items into the printed output — that detail belongs in the run-report
