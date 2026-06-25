@@ -1,7 +1,7 @@
 ---
 name: check-pr-comments
-description: Check a pull request for new or unaddressed comments — review comments, inline review threads, and top-level PR comments — excluding the agent's/supervisor's own comments, and distinguishing unaddressed feedback from already-resolved threads. Outputs a concise, actionable summary of what still needs a response. Standalone and invocable on its own; also consumable by /issue-supervisor. Use to see what feedback on a PR still needs handling.
-argument-hint: "<pr-number> [--repo <owner/repo>] [--include-self] [--since <ISO8601>] [--json]"
+description: Check a pull request for new or unaddressed comments — review comments, inline review threads, and top-level PR comments — distinguishing unaddressed feedback from already-resolved threads. Outputs a concise, actionable summary of what still needs a response. Standalone and invocable on its own; also consumable by /issue-supervisor. Use to see what feedback on a PR still needs handling.
+argument-hint: "<pr-number> [--repo <owner/repo>] [--since <ISO8601>] [--json]"
 ---
 
 # Check PR Comments
@@ -37,11 +37,7 @@ Three distinct comment sources, all fetched and merged:
   so they are reported as unaddressed. Use `--since <ISO8601>` to scope to
   comments newer than a known checkpoint (e.g. the last supervisor pass) when
   you only care about what's new.
-- **The agent's / supervisor's own comments are excluded.** By default the
-  excluded account is the `gh`-authenticated user (the account the agent runs
-  as), so its own replies and review summaries are never surfaced as "needs a
-  response". Pass `--include-self` to include them (useful when inspecting a PR
-  you authored by hand).
+- **All comments are surfaced regardless of author** — no filtering by who posted.
 
 ### Limitation: thread attribution
 
@@ -49,9 +45,6 @@ An inline review thread is attributed to its **first** comment — the opening
 "ask" — for author, body, and timestamp, while its resolved/outdated state is
 taken from the **thread**. Two consequences worth knowing:
 
-- A thread *you* (the excluded account) opened is dropped even if a reviewer
-  replied underneath with the real ask. If you self-review, pass
-  `--include-self` or read the thread directly.
 - The body shown is the opener's, not the latest reply. The resolved state is
   still authoritative for unaddressed-vs-handled, so you won't get false
   "handled" — but open the URL for the full conversation when a thread is long.
@@ -65,7 +58,6 @@ Parse the arguments:
 
 - **`<pr-number>`** (required) — the first bare integer.
 - **`--repo <owner/repo>`** — defaults to the current checkout's repo.
-- **`--include-self`** — do not exclude the authenticated user's own comments.
 - **`--since <ISO8601>`** — only consider comments created at or after this
   timestamp (e.g. `2026-06-01T00:00:00Z`).
 - **`--json`** — print the raw JSON envelope instead of the formatted summary
@@ -87,7 +79,6 @@ It emits a single JSON envelope on stdout:
   "ok": true,
   "repo": "owner/name",
   "pr": 123,
-  "excludedAuthor": "leahpeker",
   "since": null,
   "counts": { "total": 4, "unaddressed": 3, "handled": 1 },
   "unaddressed": [ { "kind": "review-thread", "author": "...", "path": "...", "line": 42, "resolved": false, "outdated": false, "body": "...", "url": "..." } ],
@@ -110,7 +101,7 @@ threads. End with a one-line note of how many were already handled (don't list
 them).
 
 ```
-PR #123 — owner/name · 3 unaddressed, 1 handled (excluding @leahpeker)
+PR #123 — owner/name · 3 unaddressed, 1 handled
 
 @reviewer
   • src/auth.ts:42 — "this should handle the null case before…" (outdated)  <url>
@@ -123,14 +114,11 @@ PR #123 — owner/name · 3 unaddressed, 1 handled (excluding @leahpeker)
 ```
 
 If there are **no unaddressed comments**, say so plainly:
-`PR #123 — owner/name · nothing unaddressed (1 handled, excluding @leahpeker).`
+`PR #123 — owner/name · nothing unaddressed (1 handled).`
 
 ## Notes
 
 - **Read-only.** This skill never replies, resolves, or edits. It only reports.
-- **Self-exclusion uses the login, not email** — the script derives it from
-  `gh api user`. If you run as a different identity than the one that posts, pass
-  `--include-self` and filter in your own reasoning instead.
 - **`--since` is the de-dup lever.** This skill is stateless; to avoid
   re-surfacing the same comments across passes, a caller (e.g. the supervisor)
   should record the last-checked timestamp per PR and pass it back as `--since`.

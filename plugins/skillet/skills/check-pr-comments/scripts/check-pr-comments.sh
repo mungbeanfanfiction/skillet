@@ -4,7 +4,7 @@
 # JSON envelope on stdout. The SKILL.md formats the human summary; this script
 # does the deterministic fetching + classification so the result is reproducible.
 #
-# Usage: check-pr-comments.sh <pr-number> [--repo <owner/repo>] [--include-self] [--since <ISO8601>]
+# Usage: check-pr-comments.sh <pr-number> [--repo <owner/repo>] [--since <ISO8601>]
 #
 # Classification rules (documented in SKILL.md):
 #   - Inline review threads: unaddressed iff NOT isResolved. (isOutdated is
@@ -12,10 +12,8 @@
 #     need a reply.) A thread is attributed to its FIRST comment (the "ask");
 #     resolved/outdated state is taken from the thread itself.
 #   - Top-level PR comments + standalone review-summary bodies: no native
-#     resolve state, so treated as unaddressed unless filtered by --since or
-#     authored by the excluded self account.
-#   - Comments authored by the excluded account (default: the gh-authenticated
-#     user — i.e. the agent/supervisor) are dropped entirely, never surfaced.
+#     resolve state, so treated as unaddressed unless filtered by --since.
+#   - All comments are surfaced regardless of author.
 set -euo pipefail
 
 fail() { jq -n --arg e "$1" '{ok:false, error:$e}'; exit 1; }
@@ -26,13 +24,11 @@ command -v jq >/dev/null 2>&1 || fail "jq not found on PATH"
 
 PR=""
 REPO=""
-INCLUDE_SELF=0
 SINCE=""
 
 while [ $# -gt 0 ]; do
   case "$1" in
     --repo) REPO="${2:-}"; shift 2 ;;
-    --include-self) INCLUDE_SELF=1; shift ;;
     --since) SINCE="${2:-}"; shift 2 ;;
     # Always emit JSON, so accept-and-ignore --json — lets callers forward [flags] verbatim.
     --json) shift ;;
@@ -51,12 +47,7 @@ fi
 OWNER="${REPO%%/*}"
 NAME="${REPO##*/}"
 
-# The account to exclude: the agent/supervisor runs as the gh-authenticated user,
-# so its own replies/summaries must never be surfaced as "needs a response".
 SELF=""
-if [ "$INCLUDE_SELF" -eq 0 ]; then
-  SELF="$(gh api user --jq '.login' 2>/dev/null || echo "")"
-fi
 
 # --- Inline review threads (carry the resolved/outdated state) -----------------
 # GraphQL is the only source that exposes isResolved, so it is the source of
@@ -147,19 +138,16 @@ jq -n \
   --argjson threads "$THREADS" \
   --argjson toplevel "$TOPLEVEL" \
   --argjson reviews "$REVIEWS" \
-  --arg self "$SELF" \
   --arg since "$SINCE" \
   --arg pr "$PR" \
   --arg repo "$REPO" '
   ($threads + $toplevel + $reviews)
-  | map(select($self == "" or .author != $self))
   | map(select($since == "" or .createdAt >= $since))
   | map(. + {unaddressed: (.resolved | not)})
   | {
       ok: true,
       repo: $repo,
       pr: ($pr | tonumber),
-      excludedAuthor: (if $self == "" then null else $self end),
       since: (if $since == "" then null else $since end),
       counts: {
         total: length,
