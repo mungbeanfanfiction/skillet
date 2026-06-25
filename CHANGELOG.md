@@ -1,3 +1,9 @@
+## [0.17.0](https://github.com/mungbeanfanfiction/skillet/compare/v0.16.0...v0.17.0) (2026-06-25)
+
+### Features
+
+* **skillet:** add resolve-conflicts skill ([#40](https://github.com/mungbeanfanfiction/skillet/issues/40)) ([1037e3e](https://github.com/mungbeanfanfiction/skillet/commit/1037e3e8f477b33a5c367bdca99a246946113d04)), closes [#33](https://github.com/mungbeanfanfiction/skillet/issues/33) [#34](https://github.com/mungbeanfanfiction/skillet/issues/34)
+
 ## [0.16.0](https://github.com/mungbeanfanfiction/skillet/compare/v0.15.0...v0.16.0) (2026-06-25)
 
 ### Features

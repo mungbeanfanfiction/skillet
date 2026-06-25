@@ -9,7 +9,7 @@
     {
       "name": "skillet",
       "description": "Personal collection of Claude Code skills: PR automation, worktree management, and more",
-      "version": "0.16.0",
+      "version": "0.17.0",
       "source": "./plugins/skillet",
       "author": {
         "name": "Leah Peker",
