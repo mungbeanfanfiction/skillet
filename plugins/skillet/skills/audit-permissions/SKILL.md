@@ -1,6 +1,6 @@
 ---
 name: audit-permissions
-description: Audit an RBAC system for drift between its backend source-of-truth permission keys, the frontend mirror, the role-management UI, and enforcement call sites — then fix the drift on a dedicated worktree and open a draft PR. Detects four drift classes (missing-from-mirror, orphaned/unenforced, missing-from-role-UI, value mismatch). Use when permission keys may have fallen out of sync, or to periodically check an RBAC layer.
+description: Audit an RBAC system for drift between its backend source-of-truth permission keys, the frontend mirror, the role-management UI, and enforcement call sites — then fix the drift on a dedicated worktree and open a draft PR. Detects five drift classes (missing-from-mirror, orphaned/unenforced, missing-from-role-UI, value mismatch, incomplete dotted pairs like member_list.view without member_list.edit). Use when permission keys may have fallen out of sync, or to periodically check an RBAC layer.
 argument-hint: "[--report-only]"
 ---
 
@@ -33,9 +33,25 @@ No required argument. Optional flag:
 Without the flag, the skill runs the full pipeline: detect → worktree → fix →
 verify → draft PR.
 
-## The four drift classes
+## Permission key naming conventions
 
-The audit detects exactly these four, between the backend source of truth and the
+Permission keys may be flat (`manage_users`) or use the **`resource.action`
+dotted pattern** (`member_list.view`, `member_list.edit`). Both shapes are valid;
+the dotted pattern is preferred for new permissions because it groups related
+capabilities and makes privilege escalation visible (granting `.edit` without
+`.view` is an obvious mistake).
+
+When you encounter dotted keys, treat the `resource` prefix as a grouping —
+`member_list.view` and `member_list.edit` are siblings. The audit should
+detect **orphaned half-pairs**: a `.view` key with no corresponding `.edit`, or
+vice versa, when the resource is the kind of thing that should have both. Flag
+these as a fifth drift class (see below). Don't enforce this mechanically for
+every resource — some resources are legitimately read-only or write-only —
+surface it for human judgment.
+
+## The five drift classes
+
+The audit detects these, between the backend source of truth and the
 frontend mirror / role UI / enforcement sites:
 
 1. **Missing from mirror** — a key in the backend source-of-truth enum that has no
@@ -50,6 +66,10 @@ frontend mirror / role UI / enforcement sites:
 4. **Value mismatch** — a key that exists on both sides but whose underlying
    **string literal value** differs between backend and frontend, so an
    enforcement check on one side will never match a grant from the other.
+5. **Incomplete dotted pair** — for dotted `resource.action` keys, a resource that
+   has a `.view` but no `.edit` (or vice versa), suggesting one half was added and
+   the other forgotten. Surface for human judgment; do not auto-add the missing
+   half.
 
 ## Workflow
 
@@ -112,6 +132,11 @@ Then compute each drift class:
 - **Orphaned / unenforced:** `defined_keys − referenced_keys`.
 - **Missing from role UI:** `defined_keys − role_ui_keys`.
 - **Value mismatch:** for keys in both sets, where `backend_value ≠ frontend_value`.
+- **Incomplete dotted pair:** for all dotted keys, group by `resource` prefix.
+  For each resource prefix, check whether both `.view` and `.edit` exist. If only
+  one exists, flag it. Also check for other common action suffixes (`.create`,
+  `.delete`) — flag any resource that has `.edit` but no `.view`, since that's
+  almost always an oversight.
 
 Be careful to distinguish **enum-name references** (e.g. `PermissionKey.EDIT_X`)
 from **string-literal values** (`"edit_x"`) — the value-mismatch check compares the
@@ -136,6 +161,10 @@ keys and the `file:line` evidence. Example shape:
 
 ### Value mismatch
 - `manage_members` — backend "manage_members" vs frontend "manageMembers"
+
+### Incomplete dotted pairs (needs human judgment)
+- `member_list` — has `member_list.view` but no `member_list.edit`
+- `event_photos` — has `event_photos.edit` but no `event_photos.view` ⚠️ (edit without view is almost certainly an oversight)
 
 ### Layers audited
 - backend source of truth: backend/users/permissions.py ✓
@@ -186,6 +215,9 @@ For each drift class, apply the **minimal, safe** correction inside the worktree
   orphaned keys to the PR description as findings the human must adjudicate, and
   only mechanically fix them if the request explicitly authorizes removal. When in
   doubt, surface, don't delete.
+- **Incomplete dotted pair** — **do not auto-add the missing half.** Adding
+  `member_list.edit` when only `member_list.view` exists is a product decision, not
+  a mechanical fix. Surface the finding in the PR description for human judgment.
 
 Keep edits surgical — touch only the lines needed to close the drift. Do not
 reformat or reorder unrelated entries.
@@ -257,6 +289,11 @@ If there was no drift, the report is simply "no drift found" — no worktree, no
   success without it passing.
 - This skill composes `/create-worktree` and `/open-pr`. It never merges, never
   pushes to the base branch, and always opens the PR as a **draft**.
+- Prefer the **`resource.action` dotted pattern** for new permission keys
+  (e.g. `member_list.view`, `member_list.edit`). It groups related capabilities,
+  makes the privilege escalation relationship visible, and enables the
+  incomplete-pair check. Flat keys (`manage_users`) are still valid for
+  coarse-grained permissions with no obvious read/write split.
 - This skill *reconciles* drift between existing keys. *Adding* a brand-new
   permission across all layers (define → migrate → enforce → mirror → role UI →
   test) is a separate, complementary concern handled by the companion
