@@ -33,6 +33,12 @@ Run this pipeline for the task, logging each completed stage to the
    must pass; fix and re-run, or stop and report if un-greenable.
 6. open a DRAFT PR with the `open-pr` skill, then write `done` under
    `## Pipeline stage`.
+7. notify — as the LAST step, signal the supervisor that this slot is now free so
+   it can refill promptly instead of waiting for the next ~5h poll. Run the
+   plugin's `issue-supervisor/scripts/notify-completion.sh` (best-effort; append
+   `|| true`). Do this whenever the session ends a slot — after opening the PR in
+   step 6, AND on any clean early EXIT that frees the slot (skip-and-log, or the
+   design-question escape hatch below). It is safe to call more than once.
 
 DESIGN-QUESTION ESCAPE HATCH (any stage): if you need a decision only the user
 can make, write `.claude/question.md` (the question, 2-4 options with your
