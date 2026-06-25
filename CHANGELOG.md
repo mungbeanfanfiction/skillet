@@ -1,3 +1,9 @@
+## [0.20.0](https://github.com/mungbeanfanfiction/skillet/compare/v0.19.0...v0.20.0) (2026-06-25)
+
+### Features
+
+* **skillet:** notify supervisor on session completion to refill freed slots ([#46](https://github.com/mungbeanfanfiction/skillet/issues/46)) ([457dfa5](https://github.com/mungbeanfanfiction/skillet/commit/457dfa570e7e23c582b37406ecb9262ba45ea917)), closes [#42](https://github.com/mungbeanfanfiction/skillet/issues/42)
+
 ## [0.19.0](https://github.com/mungbeanfanfiction/skillet/compare/v0.18.0...v0.19.0) (2026-06-25)
 
 ### Features
