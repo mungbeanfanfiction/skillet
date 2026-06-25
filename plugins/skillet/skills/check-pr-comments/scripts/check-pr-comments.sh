@@ -47,8 +47,6 @@ fi
 OWNER="${REPO%%/*}"
 NAME="${REPO##*/}"
 
-SELF=""
-
 # --- Inline review threads (carry the resolved/outdated state) -----------------
 # GraphQL is the only source that exposes isResolved, so it is the source of
 # truth for "handled vs unaddressed" on inline comments. Paginate over

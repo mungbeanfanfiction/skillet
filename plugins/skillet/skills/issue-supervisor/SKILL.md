@@ -31,7 +31,8 @@ this cycle (reschedule). Never act on partial data.
 ## 3. Act on owned worktrees (from survey JSON)
 - `stalled` → run `scripts/restart.sh <path> <issue>`.
 - `needs-input` → leave alone (the sweeper owns it; never restart).
-- `pr-open` → leave to the human.
+- `pr-open` → leave the merge/review decision to the human, but watch it for
+  follow-up work in step 3a.
 - `blocked` → report with its `blocked_reason`; do not touch. The reason tells you
   what happened: `task_md_missing` (registry points at a worktree whose task.md is
   gone — likely registry/disk drift, worth investigating), `restart_cap` (hit the
@@ -40,6 +41,34 @@ this cycle (reschedule). Never act on partial data.
 - `working` → leave alone.
 NEVER touch worktrees with `"owned": false` (state `foreign`) — list them in the
 report's FYI, nothing more.
+
+## 3a. Watch open PRs (comments + conflicts)
+Run `scripts/pr-watch.sh`. For every OWNED worktree whose branch has an open PR,
+it checks two signals and, when either fires, dispatches a follow-up session
+**into that PR's existing worktree** (the branch is already checked out there) —
+through the same detached-`claude` mechanism as a normal dispatch, no one-off
+code path:
+
+- **New/unaddressed comments** — via the `check-pr-comments` skill (run with
+  `--json` and the stored `--since` checkpoint), which covers inline review
+  threads, review summaries, and top-level PR comments and excludes already
+  resolved threads. The follow-up session addresses the feedback (code changes
+  and/or thread replies) and pushes to the PR branch.
+- **A merge conflict** — when `gh`'s `mergeStateStatus` is `DIRTY`/`BEHIND`. The
+  follow-up session runs the `resolve-conflicts` skill, which conservatively
+  resolves only safe conflicts and pushes, or escalates cleanly when a conflict
+  needs human judgment.
+
+**De-dup is automatic.** A per-PR checkpoint in the registry
+(`pr_checkpoint.comments_since` + `pr_checkpoint.conflict_oid`) records the
+handled state, so the loop never re-dispatches the same comments or the same
+unchanged conflict state. A checkpoint advances only for the signal it actually
+dispatched on; a fresh conflict (base or head moved) or newer comments re-trigger
+on a later pass. The script **skips** any worktree with a live session or a
+pending `question.md`, so it never clobbers in-flight work. A PR-watch session
+does not consume one of the 3 issue slots (a `pr-open` worktree is not
+in-flight); it is PR maintenance, not new issue work. Surface each acted-on PR
+(number + reasons) in the step-5 report.
 
 ## 4. Refill slots
 While `free_slots > 0` and the queue is non-empty, take the next item:
@@ -66,12 +95,13 @@ line that's empty/zero rather than printing "none"):
 ```
 survey: N working, M stalled, K needs-input, J pr-open  (P foreign) · slots F/3
 acted: restarted #12 #34 · dispatched #56 #78 · groomed #90→epic (+3 sub-issues)
+pr-watch: #43 comment-dispatched · #45 conflict-dispatched
 blocked: #41 restart_cap
 ```
-Lead with the counts, then the verbs (restarted / dispatched / groomed / blocked).
-Do NOT dump per-worktree narration, full STATUS.md text, or unchanged "working"
-items into the printed output — that detail belongs in the run-report file, not
-the per-iteration summary. If nothing was acted on, say so in one line.
+Lead with the counts, then the verbs (restarted / dispatched / groomed / blocked /
+pr-watch). Do NOT dump per-worktree narration, full STATUS.md text, or unchanged
+"working" items into the printed output — that detail belongs in the run-report
+file, not the per-iteration summary. If nothing was acted on, say so in one line.
 
 The full detail still gets persisted: append a run-report under
 `docs/superpowers/runs/` (use `supervisorlib.runreport`) capturing shipped,
@@ -88,3 +118,7 @@ sessions). Never git restore/checkout/clean/reset. Foreign worktrees are
 report-only. The per-issue review step dispatches the
 `pr-review-toolkit:code-reviewer` subagent (a headless session can't invoke the
 `/code-review` slash command), applies its high/medium findings, cap 3 rounds.
+PR-watch (step 3a) only ever spawns into an OWNED worktree's existing branch, and
+only when that worktree is idle (no live session, no pending question); its
+follow-up sessions push to the PR branch but, like every other session, never
+merge or push to the base branch.

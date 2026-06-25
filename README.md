@@ -27,7 +27,7 @@ Personal marketplace of Claude Code skills.
 | `/worktree-status` | Report every worktree's WIP narrative (from `STATUS.md`) plus live git state; flags stale worktrees. |
 | `/check-pr-comments` | One-shot: list a PR's new/unaddressed comments — inline review threads, review summaries, and top-level PR comments — excluding the agent's own, and distinguishing unaddressed from already-resolved. Read-only. |
 | `/pr-fleet-manager` | Loop that watches your open PRs in the current repo: retries flaky CI, surfaces review comments, rebases safe conflicts, and prints a status digest. Starts in observation mode; never auto-merges or applies suggestions. |
-| `/issue-supervisor` | ~5h loop: survey worktrees, restart stalled sessions, dispatch `auto`-labeled issues (or a `--file` checklist) to background sessions, groom the backlog. Opens draft PRs via `review-fix` + `open-pr`. |
+| `/issue-supervisor` | ~5h loop: survey worktrees, restart stalled sessions, dispatch `auto`-labeled issues (or a `--file` checklist) to background sessions, groom the backlog. Watches its own open PRs each pass — dispatches follow-up sessions into a PR's worktree for new comments (via `check-pr-comments`) or merge conflicts (via `resolve-conflicts`), with per-PR de-dup. Opens draft PRs via `review-fix` + `open-pr`. |
 | `/question-sweeper` | ~1h loop: route sessions parked on design questions to `docs/superpowers/questions/` + a GitHub comment, and re-dispatch once answered. |
 
 ## Hooks
