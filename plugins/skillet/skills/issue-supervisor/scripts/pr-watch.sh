@@ -70,11 +70,7 @@ PY
   local SINCE ENVELOPE
   SINCE="$(echo "$CHECKPOINT" | jq -r '.comments_since // empty')"
   if [ -x "$COMMENTS_SCRIPT" ]; then
-    if [ -n "$SINCE" ]; then
-      ENVELOPE="$("$COMMENTS_SCRIPT" "$PR" --repo "$REPO" --since "$SINCE" --json 2>/dev/null || echo '{"ok":false}')"
-    else
-      ENVELOPE="$("$COMMENTS_SCRIPT" "$PR" --repo "$REPO" --json 2>/dev/null || echo '{"ok":false}')"
-    fi
+    ENVELOPE="$("$COMMENTS_SCRIPT" "$PR" --repo "$REPO" --since "$SINCE" --json 2>/dev/null || echo '{"ok":false}')"
   else
     echo "warn: check-pr-comments script not found at $COMMENTS_SCRIPT — comments skipped for PR #$PR" >&2
     ENVELOPE='{"ok":false}'
