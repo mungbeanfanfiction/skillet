@@ -60,15 +60,27 @@ Run the **dispatch-time triage gate**:
   dispatch the parent. (Idempotent: epics are filtered out by survey.)
 
 ## 5. Report + reschedule
-Print: in-flight (issue→state), restarted, PRs open, blocked w/ reason,
-needs-input count, foreign-worktree FYI, slots filled, backlog groomed. For the
-human-readable narrative — especially the foreign-worktree FYI and staleness —
-run the `worktree-status` skill and fold its output into the report (it reads each
-worktree's `STATUS.md` + live git state). The automated classification above stays
-ground-truth based (`survey.sh`); `worktree-status` only enriches the report, it
-does not drive restart/dispatch decisions. Append a run-report under
-`docs/superpowers/runs/` (use `supervisorlib.runreport`). Release the lock. The
-/loop reschedules ~5h.
+Print a **tight, scannable digest** — only what changed or was acted on this
+cycle. Default to a few lines, not a long-form report. Suggested shape (omit any
+line that's empty/zero rather than printing "none"):
+```
+survey: N working, M stalled, K needs-input, J pr-open  (P foreign) · slots F/3
+acted: restarted #12 #34 · dispatched #56 #78 · groomed #90→epic (+3 sub-issues)
+blocked: #41 restart_cap
+```
+Lead with the counts, then the verbs (restarted / dispatched / groomed / blocked).
+Do NOT dump per-worktree narration, full STATUS.md text, or unchanged "working"
+items into the printed output — that detail belongs in the run-report file, not
+the per-iteration summary. If nothing was acted on, say so in one line.
+
+The full detail still gets persisted: append a run-report under
+`docs/superpowers/runs/` (use `supervisorlib.runreport`) capturing shipped,
+skipped, and flagged items. The `worktree-status` skill (per-worktree `STATUS.md`
++ live git state) and any foreign-worktree FYI are for that run-report and for
+answering follow-up questions on demand — do NOT fold their narrative into the
+default printed digest. The automated classification stays ground-truth based
+(`survey.sh`); `worktree-status` only enriches the persisted report, it does not
+drive restart/dispatch decisions. Release the lock. The /loop reschedules ~5h.
 
 ## Hard rules
 No merge, no push to the base branch, only DRAFT PRs (those happen inside
