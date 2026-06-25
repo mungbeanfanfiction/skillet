@@ -51,3 +51,23 @@ def test_resume_prompt_mentions_the_answer():
     p = spawn.resume_prompt(issue=489)
     assert "answer" in p.lower()
     assert "489" in p
+
+
+def test_pr_address_prompt_names_the_two_subskills_and_signals():
+    p = spawn.pr_address_prompt(issue=489, pr=42, reasons="comments,conflict")
+    # consumes BOTH sub-skills by name (#34 resolve-conflicts, #35 check-pr-comments)
+    assert "check-pr-comments" in p
+    assert "resolve-conflicts" in p
+    # carries the PR + issue identity and the signals to handle
+    assert "42" in p
+    assert "489" in p
+    assert "comments,conflict" in p
+
+
+def test_pr_address_prompt_does_not_open_a_new_pr_or_touch_base():
+    p = spawn.pr_address_prompt(issue=1, pr=2, reasons="comments")
+    # this is follow-up on an EXISTING PR — it must not open another or restart the pipeline
+    assert "Do NOT open a new PR" in p
+    assert "never push to the base branch" in p
+    # the design-question escape hatch is preserved for follow-up work too
+    assert "question.md" in p

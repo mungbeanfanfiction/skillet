@@ -66,3 +66,35 @@ def resume_prompt(*, issue) -> str:
         f"for the answer, then continue the pipeline from where you parked.\n\n"
         f"{PIPELINE}"
     )
+
+
+# PR-watch follow-up. Reuses the same detached-session mechanism as dispatch:
+# the supervisor spawns this prompt INTO the PR's existing worktree (the branch is
+# already checked out there) when a PR has new comments and/or a fresh conflict.
+# `reasons` is a comma-separated subset of {comments, conflict}.
+def pr_address_prompt(*, issue, pr, reasons: str) -> str:
+    return f"""You are addressing follow-up on PR #{pr} (task #{issue}) in its \
+existing worktree. The branch is already checked out here. Signals to handle: \
+{reasons}.
+
+Handle EACH listed signal, then STOP — do not re-run the full implement pipeline:
+
+- If `comments` is listed: run the `check-pr-comments` skill for PR #{pr} to see \
+the unaddressed feedback, then address it in this worktree — make the requested \
+code changes and/or reply to the threads as appropriate, commit, and push to \
+this PR's branch. Reply to or resolve threads you've handled so they aren't \
+resurfaced next pass.
+- If `conflict` is listed: run the `resolve-conflicts` skill for PR #{pr}. It \
+detects the conflict state, conservatively resolves only safe (mechanical) \
+conflicts, and pushes — or reports clearly when a conflict needs human judgment. \
+If it escalates, leave the branch untouched and note it in `.claude/task.md`'s \
+`## Progress log`; do NOT force a risky resolution.
+
+After handling the signals, append a one-line note to the `## Progress log` in \
+`.claude/task.md` describing what you did, and STOP. Do NOT open a new PR (this \
+PR already exists), do NOT change `## Pipeline stage`, never merge, never push to \
+the base branch, never run git restore/checkout/clean/reset.
+
+DESIGN-QUESTION ESCAPE HATCH: if addressing the feedback needs a decision only \
+the user can make, write `.claude/question.md` (the question, 2-4 options with \
+your recommendation, context) and EXIT cleanly. Do not guess on design questions."""
