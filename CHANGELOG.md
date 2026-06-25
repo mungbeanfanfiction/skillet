@@ -1,3 +1,9 @@
+## [0.19.0](https://github.com/mungbeanfanfiction/skillet/compare/v0.18.0...v0.19.0) (2026-06-25)
+
+### Features
+
+* **skillet:** 38 - add audit-permissions skill ([#44](https://github.com/mungbeanfanfiction/skillet/issues/44)) ([47ee52a](https://github.com/mungbeanfanfiction/skillet/commit/47ee52a961a1af3b193ee9b91697bd1f7f8c4d94)), closes [#38](https://github.com/mungbeanfanfiction/skillet/issues/38)
+
 ## [0.18.0](https://github.com/mungbeanfanfiction/skillet/compare/v0.17.0...v0.18.0) (2026-06-25)
 
 ### Features
