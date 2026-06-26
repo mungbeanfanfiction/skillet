@@ -1,22 +1,14 @@
-# Task: Address PR review feedback on #41
-
-## Issue
-#35 — Sub-skill: check a PR for new/unaddressed comments (standalone)
-
-## PR
-https://github.com/mungbeanfanfiction/skillet/pull/41
-
-## Labels
-auto, feature, p2, loop-generated
-
-## Feedback to address
-
-Comment r3477313526 on `plugins/skillet/skills/check-pr-comments/scripts/check-pr-comments.sh`:
-> "wait i dont want the self account to be excluded actually"
-
-Remove the logic that excludes the bot/self account from comment results. All comments should be surfaced regardless of author.
+# Task — issue #48
+**Goal:** issue-supervisor: render PR numbers as links in concise output
+**Source:** label
+**Labels:** auto,feature,p2
+**Acceptance criteria:** see issue #48 body.
 
 ## Pipeline stage
-address-review-feedback
+pickup
+
+## Restart count
+0
 
 ## Progress log
+- dispatched
