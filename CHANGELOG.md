@@ -1,3 +1,9 @@
+## [0.21.0](https://github.com/mungbeanfanfiction/skillet/compare/v0.20.0...v0.21.0) (2026-06-26)
+
+### Features
+
+* **skillet:** 47 - enforce ≤400-line PR limit in open-pr and issue-supervisor ([#49](https://github.com/mungbeanfanfiction/skillet/issues/49)) ([c84ed5f](https://github.com/mungbeanfanfiction/skillet/commit/c84ed5fce7febc6bb65c81fa62b11bc2ecfc659f)), closes [#47](https://github.com/mungbeanfanfiction/skillet/issues/47)
+
 ## [0.20.0](https://github.com/mungbeanfanfiction/skillet/compare/v0.19.0...v0.20.0) (2026-06-25)
 
 ### Features
