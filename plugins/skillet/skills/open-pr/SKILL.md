@@ -25,6 +25,24 @@ on input.
 
 ## Workflow
 
+### 0. Verbosity gate (run before anything else)
+
+Before opening the PR, run the `check-verbosity` skill against the current
+branch to catch verbosity that should be trimmed first — redundant comments,
+leftover debug logs, dead scaffolding, and wordy prose. It is report-only here;
+it never opens, pushes, or commits.
+
+- **Interactive:** run it, show the findings, and ask whether to trim before
+  continuing (offer to apply its safe fixes by re-running `check-verbosity` with
+  its `--fix` argument, or to proceed as-is). It is a gate, not a hard block —
+  the user may proceed.
+- **Non-interactive:** run it once and include its summary in the output, but do
+  **not** block on it and do **not** auto-apply `--fix` (no silent rewrites in
+  an unattended flow). Continue to step 1.
+
+If `check-verbosity` reports clean (or the skill is unavailable), continue
+silently.
+
 ### 1. Sanity checks
 
 Run from the working tree of the branch the PR will be opened from. Verify:
