@@ -18,12 +18,16 @@ RESTART_CAP = 2
 def classify(facts: dict) -> WorktreeState:
     """facts keys: process_alive, has_question_md, task_complete, has_open_pr,
     restart_count, task_md_present. Returns the single authoritative state."""
+    # A pending human question wins over everything answerable only by a person —
+    # including an open PR. An escalated (unclean) merge conflict writes
+    # question.md on a worktree that ALSO has an open PR; checking has_open_pr
+    # first would swallow it as `pr-open` and the question would never surface.
+    if facts["has_question_md"]:
+        return WorktreeState.NEEDS_INPUT
     if facts["has_open_pr"]:
         return WorktreeState.PR_OPEN
     if not facts["task_md_present"]:
         return WorktreeState.BLOCKED
-    if facts["has_question_md"]:
-        return WorktreeState.NEEDS_INPUT
     if facts["restart_count"] >= RESTART_CAP:
         return WorktreeState.BLOCKED
     if facts["task_complete"]:

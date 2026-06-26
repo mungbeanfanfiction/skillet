@@ -99,6 +99,38 @@ def test_foreign_worktree_is_never_flagged_oversize():
     assert "oversize_diff" not in result["worktrees"][0]
 
 
+def test_owned_worktree_with_escalated_conflict_is_flagged():
+    # An unclean conflict that resolve-conflicts escalated must surface in the
+    # survey JSON so the supervisor prints a digest line in its own cycle. Such a
+    # worktree also has an open PR + question.md → classifies as needs-input.
+    worktree_facts = [
+        {"issue": 11, "path": "/wt/11", "branch": "auto-11", "owned": True,
+         "facts": _facts(conflict_escalated=True, has_open_pr=True, has_question_md=True)},
+    ]
+    result = survey.assemble(worktree_facts=worktree_facts, eligible_issues=[])
+    w = result["worktrees"][0]
+    assert w["conflict_escalated"] is True
+    assert w["state"] == S.NEEDS_INPUT.value
+
+
+def test_worktree_without_escalation_has_no_conflict_flag():
+    worktree_facts = [
+        {"issue": 12, "path": "/wt/12", "branch": "auto-12", "owned": True,
+         "facts": _facts()},
+    ]
+    result = survey.assemble(worktree_facts=worktree_facts, eligible_issues=[])
+    assert "conflict_escalated" not in result["worktrees"][0]
+
+
+def test_foreign_worktree_is_never_flagged_escalated():
+    worktree_facts = [
+        {"issue": None, "path": "/wt/foreign", "branch": "feat-x", "owned": False,
+         "facts": _facts(conflict_escalated=True)},
+    ]
+    result = survey.assemble(worktree_facts=worktree_facts, eligible_issues=[])
+    assert "conflict_escalated" not in result["worktrees"][0]
+
+
 def test_foreign_worktrees_get_foreign_state_not_blocked():
     # state classification is only meaningful for OWNED worktrees; a foreign
     # worktree (someone's real in-progress work, no task.md) must not be reported

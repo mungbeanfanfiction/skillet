@@ -23,6 +23,14 @@ def test_needs_input_when_question_present():
     assert state.classify(make(has_question_md=True, process_alive=True)) == WorktreeState.NEEDS_INPUT
 
 
+def test_question_md_wins_over_open_pr():
+    # An escalated (unclean) merge conflict writes question.md on a worktree that
+    # also has an open PR. The pending human question must win — otherwise the
+    # escalation is swallowed as `pr-open` and never reaches the user.
+    facts = make(has_question_md=True, has_open_pr=True, process_alive=True)
+    assert state.classify(facts) == WorktreeState.NEEDS_INPUT
+
+
 def test_blocked_when_restart_cap_reached():
     assert state.classify(make(restart_count=2)) == WorktreeState.BLOCKED
 
