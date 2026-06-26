@@ -1,3 +1,9 @@
+## [0.22.0](https://github.com/mungbeanfanfiction/skillet/compare/v0.21.0...v0.22.0) (2026-06-26)
+
+### Features
+
+* **skillet:** 48 - render PR numbers as links in supervisor digest ([#50](https://github.com/mungbeanfanfiction/skillet/issues/50)) ([8882ece](https://github.com/mungbeanfanfiction/skillet/commit/8882ecea59a21da28413e4c7d4350bdf4cb9474a)), closes [#N](https://github.com/mungbeanfanfiction/skillet/issues/N) [#48](https://github.com/mungbeanfanfiction/skillet/issues/48) [#48](https://github.com/mungbeanfanfiction/skillet/issues/48)
+
 ## [0.21.0](https://github.com/mungbeanfanfiction/skillet/compare/v0.20.0...v0.21.0) (2026-06-26)
 
 ### Features
