@@ -1,7 +1,7 @@
 ---
 name: delete-worktree
-description: Safely remove a git worktree. Checks for uncommitted changes and unmerged/unpushed commits before removing. Optionally deletes the branch too. Supports an autonomous (--yes) mode for unattended callers like /issue-supervisor that act on the safety-check result without prompting. Use when done with a feature and ready to clean up its worktree.
-argument-hint: "<worktree-path-or-branch-name> [--yes]"
+description: Safely remove a git worktree. Checks for uncommitted changes and unmerged/unpushed commits before removing. Optionally deletes the branch too. Supports an autonomous (--noninteractive) mode for unattended callers like /issue-supervisor that act on the safety-check result without prompting. Use when done with a feature and ready to clean up its worktree.
+argument-hint: "<worktree-path-or-branch-name> [--noninteractive]"
 ---
 
 # Delete Worktree Skill
@@ -16,9 +16,9 @@ Argument can be:
 
 If no argument, list all worktrees and ask which to delete.
 
-### Autonomous mode (`--yes`)
+### Autonomous mode (`--noninteractive`)
 
-When invoked with `--yes` (e.g. from `/issue-supervisor` or any unattended
+When invoked with `--noninteractive` (e.g. from `/issue-supervisor` or any unattended
 loop), run **non-interactively**: perform every safety check below and **act on
 its result instead of prompting**. The rule is:
 
@@ -30,7 +30,7 @@ its result instead of prompting**. The rule is:
   anything. Skip the worktree and report why. Autonomous mode never destroys
   unsaved or unmerged work; it only removes what is provably safe.
 
-`--yes` removes the interactive confirmation, not the safety checks. It requires
+`--noninteractive` removes the interactive confirmation, not the safety checks. It requires
 an explicit worktree argument; it never operates on the "no argument → list and
 pick" path.
 
@@ -56,13 +56,13 @@ Run all of these in the target worktree (`git -C <path> ...`):
 ```bash
 git -C <path> status --porcelain
 ```
-If non-empty, show the user what's dirty and ask for explicit confirmation before proceeding. In `--yes` mode, treat a non-empty result as a failed check: skip this worktree (never `--force`).
+If non-empty, show the user what's dirty and ask for explicit confirmation before proceeding. In `--noninteractive` mode, treat a non-empty result as a failed check: skip this worktree (never `--force`).
 
 **Unpushed commits:**
 ```bash
 git -C <path> log @{u}..HEAD --oneline 2>/dev/null
 ```
-If the branch has no upstream OR has commits ahead of upstream, warn the user and ask for confirmation. In `--yes` mode, treat "no upstream" or "ahead of upstream" as a failed check: skip this worktree.
+If the branch has no upstream OR has commits ahead of upstream, warn the user and ask for confirmation. In `--noninteractive` mode, treat "no upstream" or "ahead of upstream" as a failed check: skip this worktree.
 
 **Unmerged branch:**
 
@@ -87,7 +87,7 @@ Summarize for the user:
 
 Ask: **"Remove this worktree? (y/n)"**
 
-**In `--yes` mode, skip this prompt.** Proceed to removal only if every safety
+**In `--noninteractive` mode, skip this prompt.** Proceed to removal only if every safety
 check in step 2 passed (clean, pushed, merged/closed PR or merged branch);
 otherwise skip the worktree and report the reason. Print the same summary to the
 log so the action is auditable.
@@ -104,7 +104,7 @@ If the worktree has uncommitted changes and the user confirmed proceeding anyway
 git worktree remove --force <path>
 ```
 
-**Never use `--force` without explicit user confirmation** — it discards uncommitted changes irreversibly. `--yes` mode never reaches `--force`, because a dirty worktree fails the safety check and is skipped before this step.
+**Never use `--force` without explicit user confirmation** — it discards uncommitted changes irreversibly. `--noninteractive` mode never reaches `--force`, because a dirty worktree fails the safety check and is skipped before this step.
 
 ### 5. Offer to delete the branch
 
@@ -117,7 +117,7 @@ git branch -d <branch>     # safe delete (fails if unmerged)
 git branch -D <branch>     # force delete
 ```
 
-**In `--yes` mode, skip the prompt and run the safe delete** (`git branch -d`).
+**In `--noninteractive` mode, skip the prompt and run the safe delete** (`git branch -d`).
 Because the worktree only got removed when its branch was merged/closed, `-d`
 succeeds; never fall back to `-D` in autonomous mode (an unexpected `-d` failure
 means the branch was not actually merged — leave it and report).
