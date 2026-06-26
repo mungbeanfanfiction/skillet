@@ -52,6 +52,53 @@ def test_non_blocked_worktree_has_no_blocked_reason():
     assert result["worktrees"][0].get("blocked_reason") is None
 
 
+def _facts(**over):
+    base = {"process_alive": True, "has_question_md": False, "task_complete": False,
+            "has_open_pr": False, "restart_count": 0, "task_md_present": True,
+            "diff_changed_lines": 0}
+    base.update(over)
+    return base
+
+
+def test_owned_pre_pr_worktree_over_400_lines_is_flagged_oversize():
+    worktree_facts = [
+        {"issue": 8, "path": "/wt/8", "branch": "auto-8", "owned": True,
+         "facts": _facts(diff_changed_lines=612)},
+    ]
+    result = survey.assemble(worktree_facts=worktree_facts, eligible_issues=[])
+    w = result["worktrees"][0]
+    assert w["oversize_diff"] is True
+    assert w["diff_changed_lines"] == 612
+
+
+def test_worktree_at_or_under_400_lines_is_not_flagged():
+    worktree_facts = [
+        {"issue": 9, "path": "/wt/9", "branch": "auto-9", "owned": True,
+         "facts": _facts(diff_changed_lines=400)},
+    ]
+    result = survey.assemble(worktree_facts=worktree_facts, eligible_issues=[])
+    assert "oversize_diff" not in result["worktrees"][0]
+
+
+def test_oversize_diff_not_flagged_once_a_pr_is_open():
+    # past the open-pr gate — the cap already had its chance to block; don't nag.
+    worktree_facts = [
+        {"issue": 10, "path": "/wt/10", "branch": "auto-10", "owned": True,
+         "facts": _facts(diff_changed_lines=900, has_open_pr=True)},
+    ]
+    result = survey.assemble(worktree_facts=worktree_facts, eligible_issues=[])
+    assert "oversize_diff" not in result["worktrees"][0]
+
+
+def test_foreign_worktree_is_never_flagged_oversize():
+    worktree_facts = [
+        {"issue": None, "path": "/wt/foreign", "branch": "feat-x", "owned": False,
+         "facts": _facts(diff_changed_lines=999)},
+    ]
+    result = survey.assemble(worktree_facts=worktree_facts, eligible_issues=[])
+    assert "oversize_diff" not in result["worktrees"][0]
+
+
 def test_foreign_worktrees_get_foreign_state_not_blocked():
     # state classification is only meaningful for OWNED worktrees; a foreign
     # worktree (someone's real in-progress work, no task.md) must not be reported

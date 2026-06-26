@@ -9,7 +9,7 @@ require_tools
 # stdout (the SKILL's "STOP on {"error":...}" contract) instead of a bare exit.
 trap 'fail "survey aborted unexpectedly"' ERR
 
-REPO="$(detect_repo)"
+REPO="$(detect_repo)"; BASE="$(detect_base)"
 ISSUES_JSON="$(gh issue list --repo "$REPO" --state open --limit 100 \
   --json number,labels 2>/dev/null)" || fail "gh issue list failed"
 PRS_JSON="$(gh pr list --repo "$REPO" --state open --limit 100 \
@@ -37,14 +37,24 @@ while read -r path; do
     case "$restart" in (''|*[!0-9]*) restart=0 ;; esac
   fi
   has_pr="$(echo "$OPEN_PR_BRANCHES" | jq --arg b "$branch" 'index($b) != null')"
+  # Changed lines vs base (added + deleted) — the metric open-pr caps at 400.
+  # Exclude lockfiles/generated files; any git failure → 0 so survey never aborts.
+  # `|| echo 0`: an unresolvable origin/<base> (fresh/unfetched worktree) makes git
+  # exit 128; under pipefail that would trip the ERR trap and abort the survey.
+  diff_lines="$(git -C "$path" diff --numstat "origin/$BASE...HEAD" \
+    -- . ':(exclude)**/*.lock' ':(exclude)**/*.freezed.dart' ':(exclude)**/*.g.dart' 2>/dev/null \
+    | awk '$1 != "-" && $2 != "-" { s += $1 + $2 } END { print s + 0 }' || echo 0)"
+  case "$diff_lines" in (''|*[!0-9]*) diff_lines=0 ;; esac
   FACTS="$(echo "$FACTS" | jq \
     --arg path "$path" --arg branch "$branch" \
     --argjson alive "$alive" --argjson hasq "$has_q" \
     --argjson complete "$task_complete" --argjson haspr "$has_pr" \
     --argjson restart "$restart" --argjson present "$task_present" \
+    --argjson difflines "$diff_lines" \
     '. += [{path:$path, branch:$branch, facts:{
         process_alive:$alive, has_question_md:$hasq, task_complete:$complete,
-        has_open_pr:$haspr, restart_count:$restart, task_md_present:$present}}]')"
+        has_open_pr:$haspr, restart_count:$restart, task_md_present:$present,
+        diff_changed_lines:$difflines}}]')"
 done < <(git worktree list --porcelain | awk '/^worktree /{print $2}')
 
 # Derive ownership + issue from the registry here (paths passed as argv, never

@@ -46,6 +46,16 @@ this cycle (reschedule). Never act on partial data.
 NEVER touch worktrees with `"owned": false` (state `foreign`) — list them in the
 report's FYI, nothing more.
 
+**Oversize-diff flag.** The survey marks any owned, pre-PR worktree whose diff has
+grown past the 400-line cap (added + deleted vs base, lockfiles/generated files
+excluded) with `"oversize_diff": true` and a `diff_changed_lines` count. `open-pr`
+hard-blocks PRs over 400 lines, so flag these before they get there: surface them
+in the step-5 report (e.g. `oversize: #56 (612 lines) — needs split`) and let the
+session split the work into smaller, logically focused PRs. Do NOT restart or
+otherwise touch the worktree on this flag alone — it is advisory and independent
+of the state classification; a `working` session may already be planning the
+split (every dispatch carries the ≤400-line constraint, see step 4).
+
 ## 3a. Watch open PRs (comments + conflicts)
 Run `scripts/pr-watch.sh`. For every OWNED worktree whose branch has an open PR,
 it checks two signals and, when either fires, dispatches a follow-up session
@@ -79,6 +89,11 @@ While `free_slots > 0` and the queue is non-empty, take the next item:
 - **Label queue:** lowest `eligible_issues` number. Fetch the body
   (`gh issue view <n>`), judge scope.
 - **File queue (`--file`):** next unchecked `- [ ]` item.
+Every dispatched session's prompt carries an explicit **≤400-line-per-PR
+constraint** (added by `supervisorlib.spawn`), with guidance to split larger work
+into separate, logically focused PRs. You don't add this per-dispatch — it ships
+in the pipeline prompt automatically.
+
 Run the **dispatch-time triage gate**:
 - **Explore** (issue labeled `explore`) → dispatch normally, passing the labels so
   the session routes itself to the `explore-issue` skill (no scope decomposition —
@@ -100,6 +115,7 @@ line that's empty/zero rather than printing "none"):
 survey: N working, M stalled, K needs-input, J pr-open  (P foreign) · slots F/3
 acted: restarted #12 #34 · dispatched #56 #78 · groomed #90→epic (+3 sub-issues)
 pr-watch: #43 comment-dispatched · #45 conflict-dispatched
+oversize: #56 (612 lines) — needs split
 blocked: #41 restart_cap
 ```
 Lead with the counts, then the verbs (restarted / dispatched / groomed / blocked /
