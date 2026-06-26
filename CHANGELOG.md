@@ -1,3 +1,9 @@
+## [0.24.0](https://github.com/mungbeanfanfiction/skillet/compare/v0.23.0...v0.24.0) (2026-06-26)
+
+### Features
+
+* **skillet:** 47 - align dispatch self-check excludes with open-pr gate ([#54](https://github.com/mungbeanfanfiction/skillet/issues/54)) ([c643bb0](https://github.com/mungbeanfanfiction/skillet/commit/c643bb0bf1c8b20491893202a7a524e1a801b06c))
+
 ## [0.23.0](https://github.com/mungbeanfanfiction/skillet/compare/v0.22.0...v0.23.0) (2026-06-26)
 
 ### Features
