@@ -39,6 +39,9 @@ default branch — and if that can't be resolved, **stop with an error** (don't
 silently assume `main`, which would review against the wrong base):
 
 ```bash
+# Substitute the [base-branch] you parsed for $1 — these snippets are illustrative,
+# so there is no positional arg unless you supply one. With no base given, $1 is
+# empty and this falls through to default-branch detection.
 BASE="${1:-$(gh repo view --json defaultBranchRef --jq '.defaultBranchRef.name' 2>/dev/null)}"
 # Prefer the local base ref; fall back to origin/<base>.
 git rev-parse --verify "$BASE" >/dev/null 2>&1 || BASE="origin/$BASE"
@@ -49,10 +52,10 @@ MERGE_BASE=$(git merge-base "$BASE" HEAD 2>/dev/null)
 
 If the base can't be resolved — empty `$BASE`, or `git merge-base` fails because
 the ref exists neither locally nor as `origin/<base>` (so `$MERGE_BASE` is
-empty) — that is a fatal setup error: **stop**. Surface it in the mode you were
+empty) — that is a fatal setup error: **stop** (there is no backing process to
+exit; "stop" means end the skill and report). Surface it in the mode you were
 invoked in — a plain-text error line by default, or the `{"ok": false,
-"error": "could not determine base branch"}` envelope (exit non-zero) when
-`--json` was passed.
+"error": "could not determine base branch"}` envelope when `--json` was passed.
 
 Now collect **everything this branch contributes**, which is three sources you
 must union — committed work, uncommitted edits, and brand-new untracked files
@@ -157,8 +160,8 @@ summary):
 ```
 
 On failure under `--json` (not in a git repo, bad base, no commits) print
-`{"ok": false, "error": "…"}` and exit non-zero. In default mode the same
-failures are reported as a plain-text error line (still exit non-zero).
+`{"ok": false, "error": "…"}` and stop. In default mode the same failures are
+reported as a plain-text error line, then stop.
 
 ### 4. Apply safe trims (only with `--fix`)
 
