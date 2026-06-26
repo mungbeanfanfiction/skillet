@@ -148,10 +148,38 @@ slot idle until the next poll. To refill promptly:
   stale reclaim, so two acquirers can never both win; because both paths share it,
   an event-driven refill can never race the scheduled cycle.
 
+## Non-interactive (no confirmation prompts)
+The supervisor runs unattended — it **never blocks on a confirmation prompt**. A
+full loop (lock → survey → act → refill → report) completes without ever asking
+the user "y/n". When the supervisor invokes a skill that is interactive by
+default — notably worktree/branch cleanup via `/delete-worktree` or
+`/cleanup-worktrees` — it passes that skill's **autonomous `--yes` mode**, which
+runs the skill's full safety checks (uncommitted changes, unpushed commits,
+merged/closed PR) and **acts on the result instead of asking**. Removal still
+happens only when those checks pass; the only thing `--yes` removes is the human
+confirmation, never the safety gate. Anything that fails a safety check is left
+in place and reported, not force-removed.
+
+**Live-session guard (supervisor-owned).** The `--yes` skills do not know about
+the supervisor's background sessions, so the supervisor must not hand a worktree
+to cleanup while a session is still live in it. Before invoking
+`/delete-worktree --yes` or `/cleanup-worktrees --yes`, only target worktrees
+whose PR is merged/closed and that have no running session — never one the survey
+classifies as `working`, `stalled`, or `needs-input`. This is the same
+in-flight guard step 3a applies before dispatching follow-up work. Combined with
+the sub-skill's own clean/pushed/merged checks, a worktree is removed only when
+it is both idle and provably safe.
+
+If the supervisor ever reaches a point where it genuinely needs a human decision,
+it does not prompt inline — it queues the question for the sweeper
+(`needs-input`) and moves on.
+
 ## Hard rules
 No merge, no push to the base branch, only DRAFT PRs (those happen inside
 sessions). Never git restore/checkout/clean/reset. Foreign worktrees are
-report-only. The per-issue review step dispatches the
+report-only. Worktree cleanup, when performed, always goes through
+`/delete-worktree --yes` or `/cleanup-worktrees --yes` so it stays
+non-interactive yet safety-gated. The per-issue review step dispatches the
 `pr-review-toolkit:code-reviewer` subagent (a headless session can't invoke the
 `/code-review` slash command), applies its high/medium findings, cap 3 rounds.
 PR-watch (step 3a) only ever spawns into an OWNED worktree's existing branch, and
