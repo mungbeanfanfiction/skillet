@@ -1,3 +1,9 @@
+## [0.23.0](https://github.com/mungbeanfanfiction/skillet/compare/v0.22.0...v0.23.0) (2026-06-26)
+
+### Features
+
+* **skillet:** 52 - add check-verbosity pre-PR gate skill ([#55](https://github.com/mungbeanfanfiction/skillet/issues/55)) ([b6a4f5b](https://github.com/mungbeanfanfiction/skillet/commit/b6a4f5b9c1860f12df38d07576c634f9037ed20e)), closes [#52](https://github.com/mungbeanfanfiction/skillet/issues/52)
+
 ## [0.22.0](https://github.com/mungbeanfanfiction/skillet/compare/v0.21.0...v0.22.0) (2026-06-26)
 
 ### Features
