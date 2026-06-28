@@ -71,7 +71,14 @@ code path:
 - **A merge conflict** — when `gh`'s `mergeStateStatus` is `DIRTY`/`BEHIND`. The
   follow-up session runs the `resolve-conflicts` skill, which conservatively
   resolves only safe conflicts and pushes, or escalates cleanly when a conflict
-  needs human judgment.
+  needs human judgment. On an **escalated (unclean) conflict** the session writes
+  `.claude/question.md` (routing it through the question-sweeper → inbox + GitHub
+  comment) **and** leaves a `CONFLICT-ESCALATED` marker in the progress log. The
+  survey scans for that marker and emits a `conflict_escalated` fact, and because
+  a pending `question.md` now outranks an open PR in `classify()`, the worktree
+  reports as `needs-input` (not `pr-open`) so the escalation is never buried.
+  Re-trigger is unchanged: `conflict_oid` still advances at dispatch, so the
+  conflict re-fires only when base or head moves.
 
 **De-dup is automatic.** A per-PR checkpoint in the registry
 (`pr_checkpoint.comments_since` + `pr_checkpoint.conflict_oid`) records the
@@ -115,9 +122,14 @@ line that's empty/zero rather than printing "none"):
 survey: N working, M stalled, K needs-input, J pr-open  (P foreign) · slots F/3
 acted: restarted #12 #34 · dispatched #56 #78 · groomed #90→epic (+3 sub-issues)
 pr-watch: [#43](https://github.com/owner/name/pull/43) comment-dispatched · [#45](https://github.com/owner/name/pull/45) conflict-dispatched
+conflict-escalated: #45 — unclean, needs human (see question-sweeper)
 oversize: #56 (612 lines) — needs split
 blocked: #41 restart_cap
 ```
+Print the `conflict-escalated` line for every worktree whose survey entry has
+`conflict_escalated: true` — an unclean merge conflict `resolve-conflicts` could
+not safely auto-resolve. It also surfaces via the question-sweeper, but this line
+makes it visible in the supervisor's own cycle before the sweeper next runs.
 Render every **PR** reference as a markdown link — `[#N](https://github.com/<repo>/pull/N)`
 — so PRs are clickable, not bare `#N` text. `scripts/pr-watch.sh` already emits a
 `pr_url` field on each acted-on PR's JSON line; use it verbatim. Issue references

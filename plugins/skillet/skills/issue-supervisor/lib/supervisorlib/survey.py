@@ -45,6 +45,11 @@ def assemble(*, worktree_facts: list, eligible_issues: list) -> dict:
         if w["owned"] and _oversize_diff(w["facts"]):
             entry["oversize_diff"] = True
             entry["diff_changed_lines"] = w["facts"].get("diff_changed_lines", 0)
+        # An unclean merge conflict that resolve-conflicts escalated, surfaced
+        # here so the supervisor gets a digest line in its own cycle — before the
+        # question-sweeper runs. Marker is written by the PR-watch session (spawn.py).
+        if w["owned"] and w["facts"].get("conflict_escalated"):
+            entry["conflict_escalated"] = True
         worktrees.append(entry)
     return {
         "worktrees": worktrees,

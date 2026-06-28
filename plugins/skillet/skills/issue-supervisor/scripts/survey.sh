@@ -28,13 +28,18 @@ while read -r path; do
   alive=false
   if [ -f "$pid_file" ] && kill -0 "$(cat "$pid_file")" 2>/dev/null; then alive=true; fi
   task_present="$([ -f "$path/.claude/task.md" ] && echo true || echo false)"
-  task_complete=false; restart=0
+  task_complete=false; restart=0; conflict_escalated=false
   if [ "$task_present" = true ]; then
     awk '/^## Pipeline stage/{getline; if($1=="done") found=1} END{exit !found}' \
       "$path/.claude/task.md" 2>/dev/null && task_complete=true || true
     restart="$(awk '/## Restart count/{getline; print $1; exit}' "$path/.claude/task.md" 2>/dev/null || echo 0)"
     # Sanitize: a hand-edited non-numeric count must not break the jq below.
     case "$restart" in (''|*[!0-9]*) restart=0 ;; esac
+    # An unclean merge conflict the PR-watch session couldn't auto-resolve leaves a
+    # `CONFLICT-ESCALATED` marker in the progress log; surface it for the digest.
+    if grep -q 'CONFLICT-ESCALATED' "$path/.claude/task.md" 2>/dev/null; then
+      conflict_escalated=true
+    fi
   fi
   has_pr="$(echo "$OPEN_PR_BRANCHES" | jq --arg b "$branch" 'index($b) != null')"
   # Changed lines vs base (added + deleted) — the metric open-pr caps at 400.
@@ -50,11 +55,11 @@ while read -r path; do
     --argjson alive "$alive" --argjson hasq "$has_q" \
     --argjson complete "$task_complete" --argjson haspr "$has_pr" \
     --argjson restart "$restart" --argjson present "$task_present" \
-    --argjson difflines "$diff_lines" \
+    --argjson difflines "$diff_lines" --argjson escalated "$conflict_escalated" \
     '. += [{path:$path, branch:$branch, facts:{
         process_alive:$alive, has_question_md:$hasq, task_complete:$complete,
         has_open_pr:$haspr, restart_count:$restart, task_md_present:$present,
-        diff_changed_lines:$difflines}}]')"
+        diff_changed_lines:$difflines, conflict_escalated:$escalated}}]')"
 done < <(git worktree list --porcelain | awk '/^worktree /{print $2}')
 
 # Derive ownership + issue from the registry here (paths passed as argv, never

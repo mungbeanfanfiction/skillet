@@ -73,6 +73,16 @@ def test_pr_address_prompt_names_the_two_subskills_and_signals():
     assert "comments,conflict" in p
 
 
+def test_pr_address_prompt_escalates_conflicts_via_question_md_and_marker():
+    # An unclean (non-auto-resolvable) conflict must reach the user, not dead-end
+    # in the progress log: the session writes question.md (→ sweeper/inbox/GH
+    # comment) AND emits the CONFLICT-ESCALATED marker the survey scans for.
+    p = spawn.pr_address_prompt(issue=489, pr=42, reasons="conflict")
+    assert "CONFLICT-ESCALATED" in p
+    assert "question.md" in p
+    assert "needs-input" in p
+
+
 def test_pr_address_prompt_does_not_open_a_new_pr_or_touch_base():
     p = spawn.pr_address_prompt(issue=1, pr=2, reasons="comments")
     # this is follow-up on an EXISTING PR — it must not open another or restart the pipeline

@@ -101,8 +101,17 @@ resurfaced next pass.
 - If `conflict` is listed: run the `resolve-conflicts` skill for PR #{pr}. It \
 detects the conflict state, conservatively resolves only safe (mechanical) \
 conflicts, and pushes — or reports clearly when a conflict needs human judgment. \
-If it escalates, leave the branch untouched and note it in `.claude/task.md`'s \
-`## Progress log`; do NOT force a risky resolution.
+If it escalates (the conflict is NOT safely auto-resolvable), leave the branch \
+untouched, do NOT force a risky resolution, and surface it so the user actually \
+sees it: \
+(a) append a `## Progress log` line to `.claude/task.md` beginning with the literal \
+marker `CONFLICT-ESCALATED` (the supervisor's survey scans for it to emit a \
+dedicated digest line), and \
+(b) write `.claude/question.md` with a short conflict summary, the list of \
+conflicting files, and 2-4 resolution options with your recommendation — this \
+routes the escalation through the question-sweeper to the inbox + a GitHub \
+comment. The branch already has an open PR, so the survey classifies a worktree \
+with `question.md` as `needs-input` (the pending question wins over the open PR).
 
 After handling the signals, append a one-line note to the `## Progress log` in \
 `.claude/task.md` describing what you did, and STOP. Do NOT open a new PR (this \
