@@ -1,3 +1,9 @@
+## [0.25.0](https://github.com/mungbeanfanfiction/skillet/compare/v0.24.0...v0.25.0) (2026-06-28)
+
+### Features
+
+* **skillet:** 56 - surface escalated merge conflicts from PR-watch ([#58](https://github.com/mungbeanfanfiction/skillet/issues/58)) ([a4a5d65](https://github.com/mungbeanfanfiction/skillet/commit/a4a5d6570f236ecff121ef1f01e99f66e6b557dc)), closes [#56](https://github.com/mungbeanfanfiction/skillet/issues/56)
+
 ## [0.24.0](https://github.com/mungbeanfanfiction/skillet/compare/v0.23.0...v0.24.0) (2026-06-26)
 
 ### Features
