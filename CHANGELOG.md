@@ -1,3 +1,9 @@
+## [0.26.0](https://github.com/mungbeanfanfiction/skillet/compare/v0.25.0...v0.26.0) (2026-06-28)
+
+### Features
+
+* **skillet:** 51 - make issue-supervisor cleanup non-interactive ([#53](https://github.com/mungbeanfanfiction/skillet/issues/53)) ([c97c790](https://github.com/mungbeanfanfiction/skillet/commit/c97c790eb95a2de0fd438a79006fc5cc6aa659d2)), closes [#51](https://github.com/mungbeanfanfiction/skillet/issues/51)
+
 ## [0.25.0](https://github.com/mungbeanfanfiction/skillet/compare/v0.24.0...v0.25.0) (2026-06-28)
 
 ### Features
