@@ -1,14 +1,25 @@
 ---
 name: cleanup-worktrees
-description: Survey all git worktrees and present cleanup candidates whose branches are merged or whose PRs are closed/merged. Lets the user pick which to remove. Use when worktrees have accumulated and you want to tidy up.
-argument-hint: ""
+description: Survey all git worktrees and present cleanup candidates whose branches are merged or whose PRs are closed/merged. Lets the user pick which to remove. Supports an autonomous (--noninteractive) mode for unattended callers like /issue-supervisor that removes only provably-safe (🟢) worktrees without prompting. Use when worktrees have accumulated and you want to tidy up.
+argument-hint: "[--noninteractive]"
 ---
 
 # Cleanup Worktrees Skill
 
 Survey worktrees, classify them by safety-to-remove, and let the user batch-delete the safe ones.
 
-This skill never deletes anything without explicit per-worktree (or "yes to all") confirmation.
+By default this skill never deletes anything without explicit per-worktree (or
+"yes to all") confirmation.
+
+### Autonomous mode (`--noninteractive`)
+
+When invoked with `--noninteractive` (e.g. from `/issue-supervisor` or any unattended
+loop), run **non-interactively**: classify every worktree exactly as below, then
+remove **only the 🟢 "Safe to remove" bucket** (clean, pushed, AND branch merged
+or PR merged) along with its local branch — without prompting. 🟡/🟠/🔴
+worktrees are left untouched and reported. `--noninteractive` removes the interactive
+confirmation, not the classification gate; nothing dirty, unpushed, or unmerged
+is ever removed.
 
 ## Workflow
 
@@ -93,6 +104,10 @@ Offer choices:
 
 If "pick individually", ask for each one separately — show its details before each prompt.
 
+**In `--noninteractive` mode, skip this step entirely** and select exactly the 🟢 bucket —
+no prompt, never 🟡 (a closed-but-unmerged PR can still hold work worth a human
+glance).
+
 🔴 worktrees are never removed by this skill. Tell the user to handle them manually with `/delete-worktree` after committing/pushing.
 
 ### 6. Remove the chosen worktrees
@@ -110,6 +125,10 @@ git branch -d <branch>     # safe delete (fails if unmerged)
 ```
 
 Batch the branch-delete prompt with a "yes to all" / "no to all" option to avoid repetitive confirmation.
+
+**In `--noninteractive` mode, skip the branch-delete prompt and run `git branch -d`** for
+each removed worktree (safe delete only — a 🟢 branch is merged, so it succeeds;
+never `-D`).
 
 ### 7. Report
 
