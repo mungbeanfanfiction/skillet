@@ -8,3 +8,4 @@ __pycache__/
 # issue-supervisor runtime state (also gitignored in target repos at runtime)
 .claude/issue-supervisor/
 .claude/worktrees/
+.tasks/
