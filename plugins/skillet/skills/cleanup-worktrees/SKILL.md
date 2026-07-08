@@ -15,11 +15,13 @@ By default this skill never deletes anything without explicit per-worktree (or
 
 When invoked with `--noninteractive` (e.g. from `/issue-supervisor` or any unattended
 loop), run **non-interactively**: classify every worktree exactly as below, then
-remove **only the 🟢 "Safe to remove" bucket** (clean, pushed, AND branch merged
-or PR merged) along with its local branch — without prompting. 🟡/🟠/🔴
-worktrees are left untouched and reported. `--noninteractive` removes the interactive
-confirmation, not the classification gate; nothing dirty, unpushed, or unmerged
-is ever removed.
+remove **only the 🟢 "Safe to remove" bucket** (no tracked modifications, pushed,
+AND branch merged or PR merged) along with its local branch — without prompting.
+🟡/🟠/🔴 worktrees are left untouched and reported. `--noninteractive` removes the
+interactive confirmation, not the classification gate; nothing with tracked
+modifications, unpushed, or unmerged is ever removed. A worktree dirty **only** with
+untracked/ignored files still qualifies for 🟢 (see step 3) and is removed with
+`--force`.
 
 ## Workflow
 
@@ -55,7 +57,29 @@ For each worktree, gather:
 ```bash
 git -C <path> status --porcelain
 ```
-Non-empty = dirty.
+Non-empty = dirty. But not all dirt is equal — distinguish two kinds:
+
+- **Tracked modifications** — any entry whose two-char status code is not `??`
+  (e.g. ` M`, `MM`, `A `, `D `, `R `, `C `, `UU`). This is real work-in-progress and
+  makes a worktree 🔴.
+- **Untracked/ignored only** — every entry is `??` (untracked), or the tree is
+  otherwise clean of tracked changes. This is typically supervisor bookkeeping
+  (session scaffolding under `.claude/`, `node_modules/`, `__pycache__/`, etc.) and
+  is **safe to discard** when the worktree is also pushed and merged.
+
+Compute a "has tracked modifications" flag:
+```bash
+if git -C <path> status --porcelain | grep -q '^[^?]'; then echo "tracked-modified"; else echo "untracked-only-or-clean"; fi
+```
+(`grep -q '^[^?]'` succeeds only when a line begins with a non-`?` character, i.e. a
+real tracked entry. A clean tree produces empty output → no match → `untracked-only-or-clean`,
+and a tree dirty only with `??` untracked entries also yields `untracked-only-or-clean`.
+Do **not** use `grep -qv '^?? '`: it exits 1 on empty input, which would mislabel a
+clean worktree as `tracked-modified`.)
+
+Do **not** special-case individual tracked paths (e.g. a modified `.claude/task.md`):
+any tracked modification keeps the worktree 🔴. The untracked-only allowance covers
+the common supervisor-bookkeeping case without risking real work.
 
 **Unpushed?**
 ```bash
@@ -74,12 +98,17 @@ gh pr list --head <branch> --state all --json number,state,url --limit 1
 ```
 States to look for: `MERGED`, `CLOSED`, `OPEN`, or no PR at all.
 
-Bucket each worktree into one of:
+Bucket each worktree into one of ("no tracked modifications" = clean **or** dirty
+with untracked/ignored files only, per the dirty check above):
 
-- **🟢 Safe to remove** — clean, pushed, AND (branch merged OR PR merged)
-- **🟡 Likely safe** — clean, pushed, PR closed (not merged) — user may want to discard
-- **🟠 Open PR** — clean, has open PR — probably keep
-- **🔴 Has work** — dirty OR has unpushed commits → never auto-suggest removal
+- **🟢 Safe to remove** — no tracked modifications, pushed, AND (branch merged OR PR merged)
+- **🟡 Likely safe** — no tracked modifications, pushed, PR closed (not merged) — user may want to discard
+- **🟠 Open PR** — no tracked modifications, has open PR — probably keep
+- **🔴 Has work** — has tracked modifications OR has unpushed commits → never auto-suggest removal
+
+A worktree whose only dirt is untracked/ignored files (`??` entries — session
+scaffolding, `node_modules/`, caches) is treated as clean for classification and
+removed with `git worktree remove --force` (see step 6).
 
 ### 4. Present the list
 
@@ -91,7 +120,7 @@ PATH                            BRANCH                STATUS
 🟢 ../myapp-fix-bar             fix-bar               merged into main
 🟡 ../myapp-experiment-baz      experiment-baz        PR #99 closed (not merged)
 🟠 ../myapp-feat-qux            feat-qux              PR #124 open
-🔴 ../myapp-wip-thing           wip-thing             dirty, 3 unpushed commits
+🔴 ../myapp-wip-thing           wip-thing             tracked changes, 3 unpushed commits
 ```
 
 ### 5. Ask what to remove
@@ -118,6 +147,18 @@ For each selected worktree:
 git worktree remove <path>
 ```
 
+If the worktree is dirty with untracked/ignored files only (a 🟢/🟡 that was kept
+eligible by the untracked-only allowance), plain `remove` fails with *"contains
+modified or untracked files"* — use `--force`:
+
+```bash
+git worktree remove --force <path>
+```
+
+`--force` here only discards untracked/ignored files (session scaffolding, caches);
+worktrees with tracked modifications are 🔴 and never reach this step, so no real
+work is destroyed.
+
 After each removal, ask whether to also delete the local branch:
 
 ```bash
@@ -143,5 +184,8 @@ Run `git worktree list` once more and show what's left.
 
 - This skill does NOT delete remote branches on GitHub.
 - It does NOT touch the main worktree.
-- It does NOT remove worktrees with uncommitted or unpushed work, even if the user says "remove all".
+- It does NOT remove worktrees with **tracked** uncommitted modifications or unpushed
+  work, even if the user says "remove all". Untracked/ignored-only dirt (session
+  scaffolding, caches) does not count as work and is discarded with `--force` when the
+  worktree is otherwise 🟢.
 - If `gh` isn't authenticated or the repo isn't on GitHub, fall back to the local `--merged` check and skip the PR-status column.
