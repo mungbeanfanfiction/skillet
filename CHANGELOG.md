@@ -1,3 +1,9 @@
+## [0.27.0](https://github.com/mungbeanfanfiction/skillet/compare/v0.26.0...v0.27.0) (2026-07-08)
+
+### Features
+
+* **skillet:** 52 - add pre-PR verbosity check ([#61](https://github.com/mungbeanfanfiction/skillet/issues/61)) ([d0443e8](https://github.com/mungbeanfanfiction/skillet/commit/d0443e83b23fe255ae67baf4b193ba50acfee804)), closes [#52](https://github.com/mungbeanfanfiction/skillet/issues/52)
+
 ## [0.26.0](https://github.com/mungbeanfanfiction/skillet/compare/v0.25.0...v0.26.0) (2026-06-28)
 
 ### Features
