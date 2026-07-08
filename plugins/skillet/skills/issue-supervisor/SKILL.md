@@ -98,8 +98,11 @@ While `free_slots > 0` and the queue is non-empty, take the next item:
 - **File queue (`--file`):** next unchecked `- [ ]` item.
 Every dispatched session's prompt carries an explicit **≤400-line-per-PR
 constraint** (added by `supervisorlib.spawn`), with guidance to split larger work
-into separate, logically focused PRs. You don't add this per-dispatch — it ships
-in the pipeline prompt automatically.
+into separate, logically focused PRs. The same prompt also tells sessions to keep
+**imports at the top of each file** (never inside functions) and to treat a
+would-be circular import as a signal to extract shared code into a module rather
+than hide the import. You don't add either per-dispatch — they ship in the
+pipeline prompt automatically.
 
 Run the **dispatch-time triage gate**:
 - **Explore** (issue labeled `explore`) → dispatch normally, passing the labels so

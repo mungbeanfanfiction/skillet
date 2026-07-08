@@ -37,6 +37,20 @@ def test_dispatch_prompt_carries_the_400_line_pr_constraint():
     assert "split" in p.lower()
 
 
+def test_dispatch_prompt_tells_sessions_to_put_imports_at_file_tops():
+    # dispatched sessions must place imports at the top of the file, not inside
+    # functions; a would-be circular import is a signal to extract shared code
+    # into a separate module rather than hide the import in a function.
+    p = spawn.dispatch_prompt(issue=1)
+    low = p.lower()
+    assert "import" in low
+    assert "top of its file" in low  # unique to the directive ("stop" also has "top")
+    assert "circular" in low
+    # restarted/resumed sessions carry the same guidance (they reuse PIPELINE).
+    assert "circular" in spawn.restart_prompt(issue=1).lower()
+    assert "circular" in spawn.resume_prompt(issue=1).lower()
+
+
 def test_dispatch_prompt_routes_explore_issues_to_explore_skill():
     # routing preamble ships in every prompt so `explore`-labeled tasks divert to /explore-issue.
     p = spawn.dispatch_prompt(issue=489)
