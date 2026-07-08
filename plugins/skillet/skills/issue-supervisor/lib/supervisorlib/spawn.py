@@ -27,6 +27,11 @@ Run this pipeline for the task, logging each completed stage to the
    new behavior) — land the smallest/most-foundational chunk first and follow up
    with the rest, rather than shipping one oversized PR. The `open-pr` skill
    HARD-BLOCKS PRs over 400 lines, so plan for this up front.
+   IMPORTS: put every import at the TOP of its file, not inside a function or
+   method. If a top-level import would create a circular dependency, that is a
+   signal to extract the shared code into a separate module (e.g. a `utils`
+   file) both sides import from — do that instead of hiding the import inside a
+   function to dodge the cycle.
 4. review — review the working diff with a cap of 3 rounds. Each round: dispatch
    the `pr-review-toolkit:code-reviewer` SUBAGENT (via the Agent/Task tool — a
    headless `claude -p` session CANNOT invoke the `/code-review` slash command, so
