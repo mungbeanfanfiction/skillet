@@ -76,7 +76,10 @@ Pick labels from the canonical set (no confirmation):
 - **Queue:** always include `auto`.
 - **Type:** exactly one. `explore` for spikes/investigations; `bug` for
   something broken; `refactor` for restructuring with no behavior change;
-  `chore` for maintenance/tooling/deps; otherwise `feature`.
+  `chore` for maintenance/tooling/deps; otherwise `feature`. **Alias:** `feature`
+  and `enhancement` are equivalent — once step 4 shows the repo already has an
+  `enhancement` label, apply `enhancement` instead of `feature` so you don't
+  seed a competing type label.
 - **Area:** include each of `frontend` / `backend` / `database` the issue
   clearly touches. If it touches none (e.g. a pure docs/tooling chore), include
   no area label.
@@ -90,6 +93,9 @@ Fetch the repo's existing labels once:
 ```bash
 gh label list --limit 200 --json name --jq '.[].name'
 ```
+
+Note whether the repo already has an `enhancement` label — it changes the type
+choice above (apply the existing `enhancement` rather than creating `feature`).
 
 For each label you plan to apply that is **not** already present, create it from
 the canonical table (look up its `color` and `description` in `labels.json`):
