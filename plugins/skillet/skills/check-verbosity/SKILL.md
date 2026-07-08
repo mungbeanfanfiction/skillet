@@ -79,7 +79,10 @@ Treat the untracked files (source 3) as if every line were an added line and run
 the same checks on them. Inspect the union of all three; de-dupe files that
 appear in more than one source.
 
-If the union is empty, report `nothing to check` and stop.
+If the union is empty, the branch is clean, not broken: report `nothing to
+check` and stop. Under `--json` this is a successful pass — emit
+`{"ok": true, ..., "counts": {"total": 0, ...}}`, **not** `ok: false` (a caller
+like the pre-PR gate would misread an error envelope as a failure).
 
 ### 2. Inspect the added lines for verbosity
 
@@ -159,8 +162,9 @@ summary):
 }
 ```
 
-On failure under `--json` (not in a git repo, bad base, no commits) print
-`{"ok": false, "error": "…"}` and stop. In default mode the same failures are
+On genuine setup failure under `--json` (not in a git repo, bad base) print
+`{"ok": false, "error": "…"}` and stop. An empty diff is **not** a failure — see
+step 1 (emit `ok: true` with `total: 0`). In default mode the same failures are
 reported as a plain-text error line, then stop.
 
 ### 4. Apply safe trims (only with `--fix`)
@@ -170,6 +174,10 @@ the mechanical, unambiguous ones (delete a debug print, drop a redundant
 comment line, remove an unused import this branch added). Leave everything that
 needs a judgment call (prose tightening, possibly-intentional logging, dead code
 that might be load-bearing) **for the human** — list it as still-open.
+
+Apply each deletion by matching its recorded offending text (or work
+bottom-to-top through the file) so an earlier edit doesn't shift the line
+numbers of later ones.
 
 Edit the working tree only. After applying, print what changed:
 
