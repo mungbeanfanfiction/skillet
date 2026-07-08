@@ -1,3 +1,9 @@
+## [0.30.0](https://github.com/mungbeanfanfiction/skillet/compare/v0.29.0...v0.30.0) (2026-07-08)
+
+### Features
+
+* **skillet:** 64 - cleanup-worktrees removes untracked-only worktrees ([#70](https://github.com/mungbeanfanfiction/skillet/issues/70)) ([6a526aa](https://github.com/mungbeanfanfiction/skillet/commit/6a526aa6d43ab2be958a189c4a5879f461bbba53))
+
 ## [0.29.0](https://github.com/mungbeanfanfiction/skillet/compare/v0.28.0...v0.29.0) (2026-07-08)
 
 ### Features
