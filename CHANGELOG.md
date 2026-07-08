@@ -1,3 +1,9 @@
+## [0.29.0](https://github.com/mungbeanfanfiction/skillet/compare/v0.28.0...v0.29.0) (2026-07-08)
+
+### Features
+
+* **skillet:** 12 - document enhancement/feature alias + taxonomy extension ([#66](https://github.com/mungbeanfanfiction/skillet/issues/66)) ([bb5b810](https://github.com/mungbeanfanfiction/skillet/commit/bb5b810d9ccb7852dc5257ed0dee33ec10f42f58)), closes [#12](https://github.com/mungbeanfanfiction/skillet/issues/12)
+
 ## [0.28.0](https://github.com/mungbeanfanfiction/skillet/compare/v0.27.0...v0.28.0) (2026-07-08)
 
 ### Features
