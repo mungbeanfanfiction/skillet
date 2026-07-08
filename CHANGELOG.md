@@ -1,3 +1,9 @@
+## [0.28.0](https://github.com/mungbeanfanfiction/skillet/compare/v0.27.0...v0.28.0) (2026-07-08)
+
+### Features
+
+* **skillet:** 59 - dispatched sessions put imports at file tops ([#67](https://github.com/mungbeanfanfiction/skillet/issues/67)) ([4ad90f3](https://github.com/mungbeanfanfiction/skillet/commit/4ad90f31804eccea4df0f2db8bfd6169eb2f9a41)), closes [#59](https://github.com/mungbeanfanfiction/skillet/issues/59)
+
 ## [0.27.0](https://github.com/mungbeanfanfiction/skillet/compare/v0.26.0...v0.27.0) (2026-07-08)
 
 ### Features
