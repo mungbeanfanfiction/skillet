@@ -152,7 +152,9 @@ Label taxonomy lives in `../_shared/labels.json` (read before labeling):
 - **Queue:** include `auto` — except a decomposed **epic** parent, which carries
   `epic` and **omits `auto`** (it is tracking-only; its children carry `auto`).
 - **Type:** exactly one (`explore` / `feature` / `bug` / `chore` / `refactor`),
-  plus `epic` when the issue was decomposed.
+  plus `epic` when the issue was decomposed. **Alias:** if the repo already has
+  an `enhancement` label, apply it in place of `feature` — don't create a
+  competing type label.
 - **Area:** zero or more of `frontend` / `backend` / `database` it clearly
   touches.
 - **Priority:** exactly one; `p0` only for urgent/blocking, `p1` high, default

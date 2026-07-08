@@ -58,6 +58,13 @@ For every label in `labels.json`:
   gh label create "<name>" --repo "$REPO" --color "<hex>" --description "<desc>"
   ```
 
+  **Exception — `feature` / `enhancement` alias.** If the canonical label is
+  `feature` and the repo already has an `enhancement` label (GitHub's default),
+  **do not** create `feature`. Treat the existing `enhancement` as the type
+  label so you don't seed a competing duplicate. Report it as `Skipped
+  (enhancement present)` rather than `Created`. This is the only canonical label
+  with a recognized alias.
+
 - **Present but drifted** (color OR description differs from canonical) → update
   it to match. Compare colors case-insensitively and ignore a leading `#`:
 
@@ -72,8 +79,26 @@ them completely untouched. **Never delete a label.**
 
 ### 4. Report
 
-Print a summary grouped as **Created**, **Updated**, **Unchanged**, listing the
-label names in each group, plus a one-line total.
+Print a summary grouped as **Created**, **Updated**, **Unchanged**, and
+**Skipped** (e.g. `feature` when `enhancement` is present), listing the label
+names in each group, plus a one-line total.
+
+## Extending the taxonomy
+
+The canonical set is deliberately small. Real backlogs almost always add more,
+and that is expected — sync is **additive and never deletes**, so a repo's own
+labels are always safe. Two common extensions:
+
+- **Area labels are repo-defined.** `frontend` / `backend` / `database` name the
+  *stack layer*. Domain/feature areas (e.g. `Auth & Security`, `Notifications`,
+  `Calendar & Scheduling`) are inherently repo-specific and therefore **not**
+  canonical. Define them per repo; this skill leaves them untouched.
+
+- **Optional type labels.** `testing`, `documentation`, `infra` / `deployment`,
+  and `tooling` are common enough that many repos add them. They are **not** in
+  the canonical set (so sync never forces them on a repo), but they are a
+  reasonable opt-in extension. Add them to the repo directly with `gh label
+  create` if you want them; sync will then leave them as the repo's own.
 
 ## Do not
 
