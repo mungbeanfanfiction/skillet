@@ -14,7 +14,7 @@ Personal marketplace of Claude Code skills.
 | Skill | What it does |
 |---|---|
 | `/open-pr` | Open a draft PR using the repo's PR template, prefilled from the linked issue or conversation context. Runs `/check-verbosity` first as a pre-PR gate. |
-| `/check-verbosity` | Diff the branch vs base and flag verbosity to trim before a PR — redundant comments, leftover debug logs, dead scaffolding, wordy docs/skill prose — with file/line refs; `--fix` applies safe trims. Read-only by default; never opens/pushes. Standalone, and the pre-PR gate for `/open-pr`. |
+| `/check-verbosity` | Diff the branch vs base and flag verbosity to trim before a PR — redundant comments, leftover debug logs, dead scaffolding, wordy prose. Read-only by default; `--fix` applies safe trims. Never opens/pushes. |
 | `/create-worktree` | Create a git worktree for a branch or GitHub issue, with env files symlinked. |
 | `/delete-worktree` | Safely remove a worktree (checks for uncommitted/unpushed work). |
 | `/cleanup-worktrees` | Survey all worktrees and bulk-remove ones whose branches are merged or whose PRs are closed. |
