@@ -10,7 +10,8 @@
 #   - Inline review threads: unaddressed iff NOT isResolved. (isOutdated is
 #     surfaced but does not by itself mean handled — an outdated thread can still
 #     need a reply.) A thread is attributed to its FIRST comment (the "ask");
-#     resolved/outdated state is taken from the thread itself.
+#     resolved/outdated state is taken from the thread itself. Threads are EXEMPT
+#     from --since — they de-dup by isResolved, so a checkpoint never hides one.
 #   - Top-level PR comments + standalone review-summary bodies: no native
 #     resolve state, so treated as unaddressed unless filtered by --since.
 #   - All comments are surfaced regardless of author.
@@ -140,7 +141,9 @@ jq -n \
   --arg pr "$PR" \
   --arg repo "$REPO" '
   ($threads + $toplevel + $reviews)
-  | map(select($since == "" or .createdAt >= $since))
+  # Inline threads de-dup by isResolved, not by timestamp, so they are exempt
+  # from --since — else an old-but-unresolved thread is hidden (the #57 bug).
+  | map(select($since == "" or .kind == "review-thread" or .createdAt >= $since))
   | map(. + {unaddressed: (.resolved | not)})
   | {
       ok: true,

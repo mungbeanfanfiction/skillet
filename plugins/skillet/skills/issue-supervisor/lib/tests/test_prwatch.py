@@ -76,9 +76,9 @@ def test_conflict_redispatch_when_head_moved():
 
 def test_checkpoint_advances_comments_to_newest_timestamp():
     env = envelope(unaddressed=2, items=[
-        {"created_at": "2026-06-25T10:00:00Z"},
-        {"created_at": "2026-06-25T12:00:00Z"},
-        {"created_at": "2026-06-25T11:00:00Z"},
+        {"createdAt": "2026-06-25T10:00:00Z"},
+        {"createdAt": "2026-06-25T12:00:00Z"},
+        {"createdAt": "2026-06-25T11:00:00Z"},
     ])
     cp = prwatch.next_checkpoint(
         prior={}, envelope=env, merge=merge(),
@@ -100,7 +100,7 @@ def test_checkpoint_falls_back_to_now_when_items_lack_created_at():
 
 
 def test_checkpoint_prefers_envelope_timestamp_over_now():
-    env = envelope(unaddressed=1, items=[{"created_at": "2026-06-25T12:00:00Z"}])
+    env = envelope(unaddressed=1, items=[{"createdAt": "2026-06-25T12:00:00Z"}])
     cp = prwatch.next_checkpoint(
         prior={}, envelope=env, merge=merge(),
         dispatch_comments=True, dispatch_conflict=False, now="2026-06-25T15:00:00Z",
@@ -123,7 +123,7 @@ def test_checkpoint_does_not_advance_skipped_signal():
     prior = {"comments_since": "2026-06-01T00:00:00Z"}
     cp = prwatch.next_checkpoint(
         prior=prior,
-        envelope=envelope(unaddressed=3, items=[{"created_at": "2026-06-25T12:00:00Z"}]),
+        envelope=envelope(unaddressed=3, items=[{"createdAt": "2026-06-25T12:00:00Z"}]),
         merge=merge("DIRTY", base="b9", head="h9"),
         dispatch_comments=False, dispatch_conflict=True,
     )
@@ -131,11 +131,107 @@ def test_checkpoint_does_not_advance_skipped_signal():
     assert cp["conflict_oid"] == "b9:h9"                    # advanced
 
 
+# --- next_checkpoint: #57 self-healing inline threads ------------------------
+
+def test_checkpoint_does_not_advance_past_unresolved_inline_thread():
+    # #57: an inline review thread carries isResolved (kind "review-thread").
+    # Advancing comments_since past it at dispatch would consume it forever if
+    # the session fails to resolve it. It must stay behind the thread so a later
+    # pass re-surfaces it. Here the ONLY unaddressed item is a thread → no advance.
+    env = envelope(unaddressed=1, items=[
+        {"kind": "review-thread", "createdAt": "2026-06-25T12:00:00Z"},
+    ])
+    cp = prwatch.next_checkpoint(
+        prior={}, envelope=env, merge=merge(),
+        dispatch_comments=True, dispatch_conflict=False, now="2026-06-25T15:00:00Z",
+    )
+    assert "comments_since" not in cp
+
+
+def test_checkpoint_keeps_prior_when_only_unresolved_threads():
+    # a prior checkpoint is preserved (not clobbered forward) when the only
+    # unaddressed items are self-healing threads.
+    prior = {"comments_since": "2026-06-01T00:00:00Z"}
+    env = envelope(unaddressed=2, items=[
+        {"kind": "review-thread", "createdAt": "2026-06-25T12:00:00Z"},
+        {"kind": "review-thread", "createdAt": "2026-06-25T13:00:00Z"},
+    ])
+    cp = prwatch.next_checkpoint(
+        prior=prior, envelope=env, merge=merge(),
+        dispatch_comments=True, dispatch_conflict=False, now="2026-06-25T15:00:00Z",
+    )
+    assert cp["comments_since"] == "2026-06-01T00:00:00Z"   # untouched
+
+
+def test_checkpoint_advances_past_non_thread_but_not_thread():
+    # mixed envelope: a top-level pr-comment (timestamp de-dup) alongside an
+    # inline thread. We advance only to the pr-comment's timestamp, NOT to the
+    # (newer) thread's — so the pr-comment de-dups while the thread re-surfaces.
+    env = envelope(unaddressed=2, items=[
+        {"kind": "pr-comment", "createdAt": "2026-06-25T10:00:00Z"},
+        {"kind": "review-thread", "createdAt": "2026-06-25T14:00:00Z"},
+    ])
+    cp = prwatch.next_checkpoint(
+        prior={}, envelope=env, merge=merge(),
+        dispatch_comments=True, dispatch_conflict=False,
+    )
+    assert cp["comments_since"] == "2026-06-25T10:00:00Z"
+
+
+def test_checkpoint_advances_past_review_summary():
+    # review-summary has no resolve state → still de-dups by timestamp.
+    env = envelope(unaddressed=1, items=[
+        {"kind": "review-summary", "createdAt": "2026-06-25T09:00:00Z"},
+    ])
+    cp = prwatch.next_checkpoint(
+        prior={}, envelope=env, merge=merge(),
+        dispatch_comments=True, dispatch_conflict=False,
+    )
+    assert cp["comments_since"] == "2026-06-25T09:00:00Z"
+
+
+def test_checkpoint_falls_back_to_now_only_for_non_thread_items():
+    # a non-thread item lacking created_at still falls back to now (unchanged
+    # behavior) — the thread exclusion must not break the malformed-item path.
+    env = envelope(unaddressed=1, items=[{"kind": "pr-comment"}])
+    cp = prwatch.next_checkpoint(
+        prior={}, envelope=env, merge=merge(),
+        dispatch_comments=True, dispatch_conflict=False, now="2026-06-25T15:00:00Z",
+    )
+    assert cp["comments_since"] == "2026-06-25T15:00:00Z"
+
+
+def test_checkpoint_no_now_fallback_when_only_threads_lack_timestamp():
+    # threads with no created_at must NOT trigger the now-fallback: there are no
+    # timestamp-de-dup items to advance for, so the checkpoint stays put.
+    env = envelope(unaddressed=1, items=[{"kind": "review-thread"}])
+    cp = prwatch.next_checkpoint(
+        prior={}, envelope=env, merge=merge(),
+        dispatch_comments=True, dispatch_conflict=False, now="2026-06-25T15:00:00Z",
+    )
+    assert "comments_since" not in cp
+
+
+def test_decide_re_dispatches_unresolved_thread_after_prior_dispatch():
+    # end-to-end #57 regression: a thread created before a prior checkpoint is
+    # still surfaced by check-pr-comments (unaddressed>0, since isResolved=false),
+    # and decide keeps re-dispatching without advancing comments_since past it.
+    prior = {"comments_since": "2026-06-20T00:00:00Z"}
+    env = envelope(unaddressed=1, items=[
+        {"kind": "review-thread", "createdAt": "2026-06-25T12:00:00Z"},
+    ])
+    d = prwatch.decide(merge=merge("CLEAN"), envelope=env, checkpoint=prior,
+                       now="2026-06-25T15:00:00Z")
+    assert d["dispatch"] is True
+    assert d["reasons"] == ["comments"]
+    assert d["checkpoint"]["comments_since"] == "2026-06-20T00:00:00Z"  # not advanced
+
+
 def test_checkpoint_preserves_unrelated_prior_keys():
     prior = {"conflict_oid": "old:old"}
     cp = prwatch.next_checkpoint(
         prior=prior,
-        envelope=envelope(unaddressed=1, items=[{"created_at": "2026-06-25T12:00:00Z"}]),
+        envelope=envelope(unaddressed=1, items=[{"createdAt": "2026-06-25T12:00:00Z"}]),
         merge=merge(),
         dispatch_comments=True, dispatch_conflict=False,
     )
@@ -154,7 +250,7 @@ def test_decide_no_dispatch_when_nothing_pending():
 def test_decide_dispatches_on_comments_only():
     d = prwatch.decide(
         merge=merge("CLEAN"),
-        envelope=envelope(2, items=[{"created_at": "2026-06-25T12:00:00Z"}]),
+        envelope=envelope(2, items=[{"createdAt": "2026-06-25T12:00:00Z"}]),
         checkpoint={},
     )
     assert d["dispatch"] is True
@@ -173,7 +269,7 @@ def test_decide_dispatches_on_conflict_only():
 def test_decide_dispatches_on_both():
     d = prwatch.decide(
         merge=merge("DIRTY", base="b1", head="h1"),
-        envelope=envelope(1, items=[{"created_at": "2026-06-25T12:00:00Z"}]),
+        envelope=envelope(1, items=[{"createdAt": "2026-06-25T12:00:00Z"}]),
         checkpoint={},
     )
     assert d["dispatch"] is True

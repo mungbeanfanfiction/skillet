@@ -85,7 +85,14 @@ code path:
 handled state, so the loop never re-dispatches the same comments or the same
 unchanged conflict state. A checkpoint advances only for the signal it actually
 dispatched on; a fresh conflict (base or head moved) or newer comments re-trigger
-on a later pass. The script **skips** any worktree with a live session or a
+on a later pass. **Inline review threads are exempt from the `comments_since`
+timestamp** — they carry `isResolved`, a truer de-dup lever, so the checkpoint is
+never advanced past an unresolved thread at dispatch. If a dispatched session
+crashes / exits early / takes the question hatch / fails to push, the thread is
+still unresolved and re-surfaces next pass rather than being silently consumed;
+once genuinely resolved it drops out of `unaddressed` on its own. Only top-level
+PR comments and review summaries (which have no resolve state) advance
+`comments_since`. The script **skips** any worktree with a live session or a
 pending `question.md`, so it never clobbers in-flight work. A PR-watch session
 does not consume one of the 3 issue slots (a `pr-open` worktree is not
 in-flight); it is PR maintenance, not new issue work. Surface each acted-on PR
