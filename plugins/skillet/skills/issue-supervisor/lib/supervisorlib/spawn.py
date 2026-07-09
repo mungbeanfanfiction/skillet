@@ -2,6 +2,31 @@
 session runs. The per-issue pipeline reuses skillet's `review-fix` skill for
 the review/auto-fix loop instead of calling /code-review directly."""
 
+# Every prompt that tells a session to write `.claude/task.md` or `.claude/question.md`
+# must carry this. Without it a session hits Claude Code's built-in Edit/Write gate on
+# `.claude/`, wrongly concludes the escape hatch is unavailable, and escalates through a
+# channel the supervisor never reads (a PR comment) — the failure #82 was filed for.
+RUNTIME_STATE_RULE = """\
+WRITING `.claude/task.md` AND `.claude/question.md`: the Edit and Write TOOLS are blocked
+on everything under `.claude/`, and the block cannot be approved in a headless session —
+do NOT try them, and do NOT conclude these files are unwritable. Bash is NOT blocked.
+Write them with the plugin's `issue-supervisor/scripts/write-runtime-state.sh`, which
+takes the content on stdin. It is not on PATH — invoke it by its full path:
+
+    S="<plugin>/issue-supervisor/scripts/write-runtime-state.sh"
+
+    "$S" --append task.md <<'EOF'
+    - <your progress-log line>
+    EOF
+
+    "$S" question.md <<'EOF'
+    <your question, 2-4 options, your recommendation>
+    EOF
+
+A plain Bash heredoc to an absolute path works too. Because these always succeed, an
+escalation must NEVER fall back to a PR comment — nothing in the supervisor reads those.\
+"""
+
 PIPELINE = """\
 ROUTING (do this first): read the `**Labels:**` line in `.claude/task.md`. If it
 includes `explore`, this is an investigation, not an implementation — run the
@@ -58,7 +83,8 @@ can make, write `.claude/question.md` (the question, 2-4 options with your
 recommendation, context) and EXIT cleanly. Do not guess on design questions.
 Never merge, never push to the base branch, never run git
 restore/checkout/clean/reset.
-"""
+
+""" + RUNTIME_STATE_RULE
 
 
 def build_argv(*, prompt: str, worktree: str) -> list:
@@ -116,7 +142,9 @@ dedicated digest line), and \
 conflicting files, and 2-4 resolution options with your recommendation — this \
 routes the escalation through the question-sweeper to the inbox + a GitHub \
 comment. The branch already has an open PR, so the survey classifies a worktree \
-with `question.md` as `needs-input` (the pending question wins over the open PR).
+with `question.md` as `needs-input` (the pending question wins over the open PR). \
+Write BOTH artifacts with `write-runtime-state.sh` (see below); a PR comment is \
+NOT an acceptable substitute — the survey and question-sweeper never read one.
 
 After handling the signals, append a one-line note to the `## Progress log` in \
 `.claude/task.md` describing what you did, and STOP. Do NOT open a new PR (this \
@@ -125,4 +153,6 @@ the base branch, never run git restore/checkout/clean/reset.
 
 DESIGN-QUESTION ESCAPE HATCH: if addressing the feedback needs a decision only \
 the user can make, write `.claude/question.md` (the question, 2-4 options with \
-your recommendation, context) and EXIT cleanly. Do not guess on design questions."""
+your recommendation, context) and EXIT cleanly. Do not guess on design questions.
+
+{RUNTIME_STATE_RULE}"""
