@@ -22,13 +22,14 @@ When invoked with `--noninteractive` (e.g. from `/issue-supervisor` or any unatt
 loop), run **non-interactively**: perform every safety check below and **act on
 its result instead of prompting**. The rule is:
 
-- If the worktree is **clean, fully pushed, and merged** (branch merged into the
-  base OR its PR is merged/closed) → remove it (and delete the local branch)
-  without asking.
-- If any safety check **fails** (uncommitted changes, unpushed commits, or an
-  unmerged branch with no merged/closed PR) → do **not** remove or `--force`
-  anything. Skip the worktree and report why. Autonomous mode never destroys
-  unsaved or unmerged work; it only removes what is provably safe.
+- If the worktree has **no tracked modifications, is fully pushed, and is merged**
+  (branch merged into the base OR its PR is merged/closed) → remove it (and delete
+  the local branch) without asking. Untracked or gitignored dirt alone — supervisor
+  runtime state, caches, `node_modules/` — does not block removal.
+- If any safety check **fails** (tracked modifications, unpushed commits, or an
+  unmerged branch with no merged/closed PR) → do **not** remove anything. Skip the
+  worktree and report why. Autonomous mode never destroys unsaved or unmerged work;
+  it only removes what is provably safe.
 
 `--noninteractive` removes the interactive confirmation, not the safety checks. It requires
 an explicit worktree argument; it never operates on the "no argument → list and
@@ -56,7 +57,25 @@ Run all of these in the target worktree (`git -C <path> ...`):
 ```bash
 git -C <path> status --porcelain
 ```
-If non-empty, show the user what's dirty and ask for explicit confirmation before proceeding. In `--noninteractive` mode, treat a non-empty result as a failed check: skip this worktree (never `--force`).
+Not all dirt is equal. `--porcelain` already omits gitignored files (so supervisor
+runtime state like `.claude/task.md` never shows up), and untracked `??` entries are
+scaffolding and caches rather than work. Only **tracked** modifications — any entry whose
+two-char status code does not start with `?` (` M`, `MM`, `A `, `D `, `R `, `UU`, …) —
+represent work that removing the worktree would destroy:
+
+```bash
+if git -C <path> status --porcelain | grep -q '^[^?]'; then echo "tracked-modified"; else echo "untracked-only-or-clean"; fi
+```
+
+(`grep -q '^[^?]'` matches only lines starting with a non-`?`. A clean tree gives empty
+output → no match. Do **not** invert with `grep -qv '^?? '`: that exits 1 on empty input
+and would mislabel a clean worktree as `tracked-modified`.)
+
+If `tracked-modified`, show the user what's dirty and ask for explicit confirmation before
+proceeding; in `--noninteractive` mode treat it as a failed check and skip this worktree
+(never `--force`). If `untracked-only-or-clean`, the check passes — this matches
+`cleanup-worktrees`, so a merged worktree carrying only runtime state is still removable.
+Do not special-case individual tracked paths: any tracked modification fails the check.
 
 **Unpushed commits:**
 ```bash
@@ -81,15 +100,15 @@ gh pr list --head <branch> --state merged --json number,url
 Summarize for the user:
 - Worktree path
 - Branch name
-- Dirty: yes/no
+- Dirty: tracked-modified / untracked-only / clean
 - Unpushed commits: count
 - PR status: open / merged / closed / none
 
 Ask: **"Remove this worktree? (y/n)"**
 
 **In `--noninteractive` mode, skip this prompt.** Proceed to removal only if every safety
-check in step 2 passed (clean, pushed, merged/closed PR or merged branch);
-otherwise skip the worktree and report the reason. Print the same summary to the
+check in step 2 passed (no tracked modifications, pushed, merged/closed PR or merged
+branch); otherwise skip the worktree and report the reason. Print the same summary to the
 log so the action is auditable.
 
 ### 4. Remove the worktree
@@ -98,13 +117,18 @@ log so the action is auditable.
 git worktree remove <path>
 ```
 
-If the worktree has uncommitted changes and the user confirmed proceeding anyway, use `--force`:
+`git worktree remove` refuses to delete a worktree that holds *any* untracked file, so a
+worktree that passed the safety check as `untracked-only` still needs `--force`:
 
 ```bash
 git worktree remove --force <path>
 ```
 
-**Never use `--force` without explicit user confirmation** — it discards uncommitted changes irreversibly. `--noninteractive` mode never reaches `--force`, because a dirty worktree fails the safety check and is skipped before this step.
+Reach for `--force` in exactly two cases: an `untracked-only` worktree that passed every
+safety check, or a `tracked-modified` one where the user explicitly confirmed discarding
+their work. **Never `--force` a `tracked-modified` worktree without that confirmation** —
+it discards uncommitted work irreversibly. `--noninteractive` mode only ever forces the
+first case; a tracked modification fails the safety check and is skipped before this step.
 
 ### 5. Offer to delete the branch
 
