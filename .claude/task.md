@@ -5,7 +5,7 @@
 **Acceptance criteria:** see issue #74 body.
 
 ## Pipeline stage
-ci
+done
 
 ## Restart count
 0
@@ -16,3 +16,5 @@ ci
 - work: added a "Bug bias" clause to both priority rules (bug + unclear -> p1; p0 still urgent-only; explicitly-minor bug may stay p2)
 - review: 1 round via code-reviewer subagent; no high/medium findings
 - ci: npm test green (19 tooling + 114 python tests)
+- verbosity gate: 2 prose findings on my own added lines; tightened both rules
+- opened draft PR #76, commented on issue #74
