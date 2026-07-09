@@ -24,6 +24,15 @@ REGISTRY="$STATE_DIR/registry.json"
 WORKTREES_DIR="$REPO_ROOT/.claude/worktrees"
 # Loop concurrency locks live alongside the registry: $STATE_DIR/{supervisor,sweeper}.lock
 
+# Cap pytest-xdist parallelism for every dispatched session. A repo's CI often runs
+# `pytest -n auto`, which spawns one worker PER CORE — fine for a single run that owns
+# the machine, ruinous when N concurrent sessions each do it (N × cores processes on
+# `cores` cores → the load-40-on-8-cores storm). xdist reads this env var in place of
+# the core count when resolving `-n auto`, so exporting it here (sourced by dispatch/
+# restart/resume before their `nohup claude` spawn) makes every session — and its CI
+# child — inherit the cap. Respects an explicit operator override.
+export PYTEST_XDIST_AUTO_NUM_WORKERS="${PYTEST_XDIST_AUTO_NUM_WORKERS:-3}"
+
 fail() { printf '{"error": %s}\n' "$(jq -Rn --arg m "$1" '$m')"; exit 1; }
 
 require_tools() {
