@@ -28,7 +28,7 @@ function runHook(toolInput, env = {}) {
 // 20k repetitions of `tmpl` (with %d substituted), enough to make a producer
 // still be writing when a downstream `head` closes the pipe.
 function line(tmpl) {
-  return Array.from({ length: 20000 }, (_, i) => tmpl.replace("%d", i) + "\n").join("");
+  return Array.from({ length: 20000 }, (_, i) => tmpl.replaceAll("%d", i) + "\n").join("");
 }
 
 // Heuristic 4 only fires on text landing at the file top. For an Edit that
@@ -142,13 +142,31 @@ test("counts avoids/avoiding as a why, but not the word 'avoidance'", () => {
   const why = runHook({ file_path: "buf.py", content: "# Buffered here.\n# This avoids a syscall per row.\nx = 1" });
   assert.equal(why.stdout, "");
 
-  const notWhy = runHook({ file_path: "layer.py", content: "# Avoidance layer.\n# Wraps the client.\nx = 1" });
+  // The stem must not appear in the header, or `echoes_name` would flag this
+  // regardless of the why-signal and the assertion would pass vacuously.
+  const notWhy = runHook({ file_path: "buf.py", content: "# Avoidance wrapper.\n# Wraps the client.\nx = 1" });
   assert.equal(notWhy.decision, "ask");
 });
 
-test("spares a one-line header", () => {
-  const { stdout } = runHook({ file_path: "auth.py", content: "# Auth helpers.\ndef f(): pass" });
+test("spares a one-line header that does not restate the filename", () => {
+  const { stdout } = runHook({ file_path: "auth.py", content: "# Helpers for the login flow.\ndef f(): pass" });
   assert.equal(stdout, "");
+});
+
+test("flags a one-line header that only restates the filename", () => {
+  const { decision, reason } = runHook({ file_path: "session_store.py", content: "# Session store.\nx = 1" });
+  assert.equal(decision, "ask");
+  assert.match(reason, /restates the filename/);
+});
+
+test("a why-signal spares a header even when it names the file", () => {
+  // Naming your subject is prose, not restatement — the filename echo must not
+  // override a header that goes on to explain why.
+  const { stdout } = runHook({
+    file_path: "session_store.py",
+    content: "# Session store: in-memory because Redis adds a deploy dependency.\n# Must stay process-local.\nx = 1",
+  });
+  assert.equal(stdout, "", "an explained header passes regardless of the filename echo");
 });
 
 test("spares shebang, license, and SPDX lines", () => {
@@ -225,10 +243,10 @@ test("detects a top-of-file Edit whose old_string holds multibyte characters", (
   });
 });
 
-// The hook's contract is that it never disrupts a session. Quoting an offender
-// back to the author must not make it die on a large input: piping a long
-// producer into `head` lets `head` close the pipe first, and the resulting
-// SIGPIPE trips `set -o pipefail` into a 141 exit.
+// The hook's contract is that it never disrupts a session. It must therefore
+// never feed a big producer into a consumer that closes the pipe early: the
+// producer takes SIGPIPE, `set -o pipefail` turns that into 141, and `set -e`
+// aborts. Both directions below crash without the here-string fixes.
 test("survives a huge comment block on every heuristic (no SIGPIPE)", () => {
   const cases = {
     "top-of-file": { file_path: "big.py", content: line("# what line %d here.") + "x = 1" },
@@ -240,6 +258,15 @@ test("survives a huge comment block on every heuristic (no SIGPIPE)", () => {
     const { decision } = runHook(toolInput);
     assert.equal(decision, "ask", `${name} should still flag a 20k-line block`);
   }
+});
+
+test("survives a huge code-first write (header scan exits on line 1)", () => {
+  // The awk that extracts the leading comment block exits at the first
+  // non-comment line — here, immediately — while the content is still being
+  // written. That is the common case: any large source file not starting with
+  // a comment. It must produce no finding and, above all, must not error.
+  const { stdout } = runHook({ file_path: "big.py", content: "x = 1\n" + line("y%d = %d") });
+  assert.equal(stdout, "");
 });
 
 test("tolerates CRLF line endings", () => {

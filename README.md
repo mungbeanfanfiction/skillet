@@ -43,11 +43,17 @@ Personal marketplace of Claude Code skills.
 The verbose-comment guard flags a leading comment block that just names or
 summarizes the file, since that restates what the code already shows. A header
 that explains *why* — a constraint, a footgun, a rejected alternative — passes
-regardless of length; the rule reads the header's content, not its size.
+regardless of length; the rule reads the header's content, not its size. A bare
+cross-reference (`See models.py`) or dependency note (`Requires psycopg2`) is a
+*what*, so it does not earn a header a pass.
+
+Naming the file's subject is fine when the header goes on to explain why; a
+header whose opening line only echoes the filename (`# Session store.` in
+`session_store.py`) is flagged even at one line.
 
 Always exempt: shebangs, license/copyright/SPDX banners, generated-file markers,
 pragmas and linter directives (`# type:`, `//go:`, `/* eslint-disable */`, …),
-docstrings, and any single-line header.
+docstrings, and any other single-line header.
 
 To disable just this check where a file genuinely needs a header:
 
