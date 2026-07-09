@@ -5,7 +5,7 @@ from supervisorlib.state import WorktreeState
 def make(**kw):
     base = dict(
         process_alive=False, has_question_md=False, task_complete=False,
-        has_open_pr=False, restart_count=0, task_md_present=True,
+        has_open_pr=False, pr_merged=False, restart_count=0, task_md_present=True,
     )
     base.update(kw)
     return base
@@ -47,11 +47,68 @@ def test_stalled_when_dead_incomplete_no_question():
     assert state.classify(make(process_alive=False)) == WorktreeState.STALLED
 
 
+def test_merged_pr_is_never_stalled_even_when_process_dead():
+    # the exact bug: a dead session on a merged branch used to restart forever
+    assert state.classify(make(pr_merged=True, process_alive=False)) == WorktreeState.MERGED
+
+
+def test_merged_pr_wins_over_restart_cap_and_done_no_pr():
+    facts = make(pr_merged=True, restart_count=99, task_complete=True)
+    assert state.classify(facts) == WorktreeState.MERGED
+    assert state.blocked_reason(facts) is None
+
+
+def test_merged_pr_wins_over_stale_task_md_markers():
+    # a session permission-blocked from writing task.md leaves a stale `pickup`
+    # marker (task_complete=False) or loses the file entirely. Merged state comes
+    # from GitHub, so neither can produce a false stall/block.
+    assert state.classify(make(pr_merged=True)) == WorktreeState.MERGED
+    assert state.classify(make(pr_merged=True, task_md_present=False)) == WorktreeState.MERGED
+
+
+def test_merged_never_swallows_a_question_or_an_open_follow_up_pr():
+    # merged outranks the local task.md markers, but not a pending human question
+    # or a follow-up PR already open off the same branch.
+    assert state.classify(make(pr_merged=True, has_question_md=True)) == WorktreeState.NEEDS_INPUT
+    assert state.classify(make(pr_merged=True, has_open_pr=True)) == WorktreeState.PR_OPEN
+
+
+def test_live_session_on_merged_branch_stays_working():
+    # a running session may be prepping a follow-up PR off the same branch, so it
+    # keeps its slot and is never handed to cleanup mid-run
+    facts = make(pr_merged=True, process_alive=True)
+    assert state.classify(facts) == WorktreeState.WORKING
+    assert state.is_in_flight(state.classify(facts)) is True
+
+
+def test_live_session_on_merged_branch_never_reports_blocked():
+    # a live session is exempt from MERGED, but must not therefore fall through to
+    # the blocking rungs — that was the original bug, just with process_alive set.
+    for extra in (dict(task_complete=True), dict(restart_count=99), dict(task_md_present=False)):
+        facts = make(pr_merged=True, process_alive=True, **extra)
+        assert state.classify(facts) == WorktreeState.WORKING
+        assert state.blocked_reason(facts) is None
+
+
+def test_done_no_pr_still_blocks_when_nothing_ever_merged():
+    # the genuine escalation must survive the new merged path
+    facts = make(task_complete=True, pr_merged=False)
+    assert state.classify(facts) == WorktreeState.BLOCKED
+    assert state.blocked_reason(facts) == "done_no_pr"
+
+
+def test_closed_unmerged_pr_does_not_read_as_merged():
+    # pr_merged is set only for MERGED PRs; an abandoned/rejected PR leaves it
+    # False, so the worktree keeps its ordinary classification.
+    assert state.classify(make(pr_merged=False, process_alive=False)) == WorktreeState.STALLED
+
+
 def test_in_flight_only_for_working_and_stalled():
     assert state.is_in_flight(WorktreeState.WORKING) is True
     assert state.is_in_flight(WorktreeState.STALLED) is True
     assert state.is_in_flight(WorktreeState.NEEDS_INPUT) is False
     assert state.is_in_flight(WorktreeState.PR_OPEN) is False
+    assert state.is_in_flight(WorktreeState.MERGED) is False
     assert state.is_in_flight(WorktreeState.BLOCKED) is False
 
 
