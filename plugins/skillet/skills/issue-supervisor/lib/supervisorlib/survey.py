@@ -51,6 +51,14 @@ def assemble(*, worktree_facts: list, eligible_issues: list, cap: int = None) ->
         if w["owned"] and _oversize_diff(w["facts"]):
             entry["oversize_diff"] = True
             entry["diff_changed_lines"] = w["facts"].get("diff_changed_lines", 0)
+        # Post-mortem for a stopped session. Gate on STALLED, not is_stale() alone —
+        # a `pr-open` worktree idling on CI would otherwise be reported as dead.
+        if w["owned"] and st is WorktreeState.STALLED:
+            entry["last_step"] = w["facts"].get("last_step")
+            entry["exit_reason"] = w["facts"].get("exit_reason")
+            if state_mod.is_stale(w["facts"]):
+                entry["stale_heartbeat"] = True
+                entry["heartbeat_age_seconds"] = w["facts"]["heartbeat_age_seconds"]
         # An unclean merge conflict that resolve-conflicts escalated, surfaced
         # here so the supervisor gets a digest line in its own cycle — before the
         # question-sweeper runs. Marker is written by the PR-watch session (spawn.py).

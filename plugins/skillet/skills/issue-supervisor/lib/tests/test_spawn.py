@@ -104,3 +104,35 @@ def test_pr_address_prompt_does_not_open_a_new_pr_or_touch_base():
     assert "never push to the base branch" in p
     # the design-question escape hatch is preserved for follow-up work too
     assert "question.md" in p
+
+
+ALL_PROMPTS = [
+    spawn.dispatch_prompt(issue=1),
+    spawn.restart_prompt(issue=1),
+    spawn.resume_prompt(issue=1),
+    spawn.pr_address_prompt(issue=1, pr=2, reasons="comments,conflict"),
+]
+
+
+def test_every_prompt_that_asks_for_question_md_explains_how_to_write_it():
+    # #82: Edit/Write are gated on `.claude/**` and the gate can't be approved in a
+    # headless session. A prompt that asks for question.md without naming the Bash
+    # path invites the session to conclude the escape hatch is unavailable and
+    # escalate via a PR comment, which nothing in the supervisor reads.
+    for p in ALL_PROMPTS:
+        assert "question.md" in p
+        assert "write-runtime-state.sh" in p
+        assert "Bash" in p
+
+
+def test_prompts_forbid_the_pr_comment_escalation_fallback():
+    assert "NOT an acceptable substitute" in spawn.pr_address_prompt(
+        issue=1, pr=2, reasons="conflict")
+    for p in ALL_PROMPTS:
+        assert "NEVER fall back to a PR comment" in p
+
+
+def test_pipeline_keeps_its_literal_awk_braces():
+    # RUNTIME_STATE_RULE is concatenated onto PIPELINE, never `.format()`-ed into it:
+    # the size-check snippet contains `END{print s+0}`, which format() would eat.
+    assert "END{print s+0}" in spawn.PIPELINE

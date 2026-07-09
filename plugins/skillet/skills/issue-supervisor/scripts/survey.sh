@@ -41,6 +41,21 @@ while read -r path; do
       conflict_escalated=true
     fi
   fi
+  # Heartbeat age is the only evidence distinguishing a working session from a wedged
+  # one (the PostToolUse hook rewrites the file on every tool call). `null` = no
+  # evidence, never stale.
+  hb="$path/.claude/status/HEARTBEAT.md"
+  hb_age=null; last_step=null; exit_reason=null
+  if [ -f "$hb" ]; then
+    hb_mtime="$(file_mtime "$hb" || echo "")"
+    case "$hb_mtime" in (''|*[!0-9]*) : ;; (*) hb_age=$(( $(date +%s) - hb_mtime )) ;; esac
+    # awk exits at the first match: a `sed | head -1` pipeline SIGPIPEs on a large
+    # file, and under pipefail that trips the ERR trap and kills the whole cycle.
+    last_step="$(awk '/^- last step: /{sub(/^- last step: /,""); print; exit}' "$hb" | jq -Rs 'rtrimstr("\n")')"
+    exit_reason="$(awk '/^- exit reason: /{sub(/^- exit reason: /,""); print; exit}' "$hb" | jq -Rs 'rtrimstr("\n")')"
+    [ "$exit_reason" = '""' ] && exit_reason=null
+    [ "$last_step" = '""' ] && last_step=null
+  fi
   has_pr="$(echo "$OPEN_PR_BRANCHES" | jq --arg b "$branch" 'index($b) != null')"
   # Merged state comes from GitHub, not from task.md, so a stale local marker
   # can't fake it. Scoped to this branch (`--head`) rather than a repo-wide
@@ -71,11 +86,13 @@ while read -r path; do
     --argjson restart "$restart" --argjson present "$task_present" \
     --argjson difflines "$diff_lines" --argjson escalated "$conflict_escalated" \
     --argjson prmerged "$pr_merged" \
+    --argjson hbage "$hb_age" --argjson laststep "$last_step" --argjson exitreason "$exit_reason" \
     '. += [{path:$path, branch:$branch, facts:{
         process_alive:$alive, has_question_md:$hasq, task_complete:$complete,
         has_open_pr:$haspr, pr_merged:$prmerged, restart_count:$restart,
         task_md_present:$present, diff_changed_lines:$difflines,
-        conflict_escalated:$escalated}}]')"
+        conflict_escalated:$escalated, heartbeat_age_seconds:$hbage,
+        last_step:$laststep, exit_reason:$exitreason}}]')"
 done < <(git worktree list --porcelain | awk '/^worktree /{print $2}')
 
 # Derive ownership + issue from the registry here (paths passed as argv, never

@@ -1,3 +1,15 @@
+## [0.31.1](https://github.com/mungbeanfanfiction/skillet/compare/v0.31.0...v0.31.1) (2026-07-09)
+
+### Bug Fixes
+
+* **skillet:** 82 - unblock agents writing .claude runtime state ([#84](https://github.com/mungbeanfanfiction/skillet/issues/84)) ([388dd50](https://github.com/mungbeanfanfiction/skillet/commit/388dd50e22045425a04edbb44b80c744e56b12e1)), closes [#82](https://github.com/mungbeanfanfiction/skillet/issues/82)
+
+## [0.31.0](https://github.com/mungbeanfanfiction/skillet/compare/v0.30.2...v0.31.0) (2026-07-09)
+
+### Features
+
+* **skillet:** 73 - heartbeat status + free slots from hung sessions ([#81](https://github.com/mungbeanfanfiction/skillet/issues/81)) ([53f5baa](https://github.com/mungbeanfanfiction/skillet/commit/53f5baa56d7dddede46b8bca2651c555832aefe3)), closes [#73](https://github.com/mungbeanfanfiction/skillet/issues/73) [#79](https://github.com/mungbeanfanfiction/skillet/issues/79)
+
 ## [0.30.2](https://github.com/mungbeanfanfiction/skillet/compare/v0.30.1...v0.30.2) (2026-07-09)
 
 ### Bug Fixes
