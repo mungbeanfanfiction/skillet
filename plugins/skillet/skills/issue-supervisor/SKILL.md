@@ -97,8 +97,8 @@ dispatched on; a fresh conflict (base or head moved) or newer comments re-trigge
 on a later pass. The script **skips** any worktree with a live session or a
 pending `question.md`, so it never clobbers in-flight work. A PR-watch session
 does not consume an issue slot (a `pr-open` worktree is not in-flight); it is PR
-maintenance, not new issue work. Surface each acted-on PR
-(number + reasons) in the step-5 report.
+maintenance, not new issue work. Surface each acted-on PR (number + reasons) in
+the step-5 report.
 
 ## 4. Refill slots
 The survey reports both `free_slots` and the `slot_cap` they're counted against.
@@ -143,8 +143,7 @@ oversize: #56 (612 lines) — needs split
 merged: #47 #48 — safe to clean up
 blocked: #41 restart_cap
 ```
-`slots F/C` is the survey's `free_slots` over its `slot_cap` — print the cap the
-survey reports, never a hardcoded 3.
+`slots F/C` is the survey's `free_slots` over its `slot_cap`.
 
 Print the `merged` line for every worktree whose survey entry has
 `cleanup_candidate: true`. These are done, not stuck — run `/cleanup-worktrees`
@@ -246,8 +245,7 @@ from host capacity by `supervisorlib.capacity`:
   applies — a typo never takes a cycle down.
 
 The resolved cap ships in the survey JSON as `slot_cap`; `free_slots` is already
-counted against it. Everything downstream — §4's refill loop, §5's `slots F/C`
-digest line — reads those two fields and never assumes 3.
+counted against it. §4's refill loop and §5's digest line read those two fields.
 
 To run the supervisor gently on a busy machine, lower the cap rather than
 throttling individual sessions:
