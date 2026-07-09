@@ -74,8 +74,9 @@ forever and hold one of the 3 slots. So skillet's `PostToolUse` hook
 call**, and again on `SessionEnd` with the exit reason; a dying agent cannot be trusted
 to narrate its own death, so the hook writes it, not the model. The survey reads that
 file's mtime into `heartbeat_age_seconds`; when a live PID's heartbeat exceeds
-`STALE_HEARTBEAT_SECONDS` (45 min — generous enough for a long CI run or a
-code-reviewer subagent), `classify()` demotes it to `stalled`, routing it to
+`STALE_HEARTBEAT_SECONDS` (15 min — a subagent's own tool calls refresh the same
+worktree's heartbeat, so the longest legitimate silence is a single tool call, and
+`Bash` is capped at 10 min), `classify()` demotes it to `stalled`, routing it to
 `restart.sh` (which reaps the wedged PID, guarding against PID reuse) under the usual
 restart cap. Such entries carry `stale_heartbeat: true` + `heartbeat_age_seconds`;
 every `stalled` entry carries `last_step` / `exit_reason`. A **missing** heartbeat is
@@ -159,7 +160,7 @@ survey: N working, M stalled, K needs-input, J pr-open  (P foreign) · slots F/C
 acted: restarted #12 #34 · dispatched #56 #78 · groomed #90→epic (+3 sub-issues)
 pr-watch: [#43](https://github.com/owner/name/pull/43) comment-dispatched · [#45](https://github.com/owner/name/pull/45) conflict-dispatched
 conflict-escalated: #45 — unclean, needs human (see question-sweeper)
-stale: #52 — no heartbeat for 61m, last step: Bash (stage: ci) — restarted
+stale: #52 — no heartbeat for 22m, last step: Bash (stage: ci) — restarted
 oversize: #56 (612 lines) — needs split
 merged: #47 #48 — safe to clean up
 blocked: #41 restart_cap

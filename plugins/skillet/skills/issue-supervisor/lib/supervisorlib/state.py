@@ -16,9 +16,10 @@ class WorktreeState(str, Enum):
 RESTART_CAP = 2
 
 # A session that has not touched a single tool in this long is hung, not thinking.
-# Generous enough to cover a long CI run or a code-reviewer subagent, short enough
-# that a wedged session frees its slot within one supervisor cycle.
-STALE_HEARTBEAT_SECONDS = 45 * 60
+# The hook fires on every PostToolUse, in subagents too (same cwd), so the longest
+# legitimate silence is one tool call — and Bash, the slowest, is capped at 10 min.
+# 15 leaves margin over that ceiling without making a wedged session hold a slot.
+STALE_HEARTBEAT_SECONDS = 15 * 60
 
 
 def is_stale(facts: dict) -> bool:

@@ -1,11 +1,4 @@
 #!/usr/bin/env bash
-# Skillet heartbeat hook (writer). PostToolUse + SessionEnd; linked worktrees only.
-#
-# Overwrites .claude/status/HEARTBEAT.md so its mtime proves the session did
-# something recently — `kill -0` says a PID exists, not that it is progressing, so a
-# hung session is otherwise invisible. The body records the last tool + pipeline
-# stage, which survive a hard kill because the hook, not the agent, writes them: a
-# dying agent cannot be relied on to narrate its own death. Always exits 0.
 set -u
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/status-common.sh"
 

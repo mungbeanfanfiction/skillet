@@ -126,7 +126,7 @@ def test_in_flight_only_for_working_and_stalled():
 
 
 def test_live_session_with_cold_heartbeat_is_stalled():
-    # kill -0 says alive; no tool call in 45min says wedged. Stalled frees the slot.
+    # kill -0 says alive; no tool call in 15min says wedged. Stalled frees the slot.
     assert state.classify(make(process_alive=True, heartbeat_age_seconds=COLD)) == WorktreeState.STALLED
     assert state.classify(make(process_alive=True, heartbeat_age_seconds=FRESH)) == WorktreeState.WORKING
 
