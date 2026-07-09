@@ -29,7 +29,9 @@ export function setVersionInJson(filePath, path, version) {
 
 const TARGETS = [
   { rel: "plugins/skillet/plugin.json", path: ["version"] },
+  { rel: "plugins/skillet/.cursor-plugin/plugin.json", path: ["version"] },
   { rel: ".claude-plugin/marketplace.json", path: ["plugins", 0, "version"] },
+  { rel: ".cursor-plugin/marketplace.json", path: ["plugins", 0, "version"] },
 ];
 
 /** Update both manifest version fields relative to repoRoot. */

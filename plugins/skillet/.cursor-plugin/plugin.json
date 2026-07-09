@@ -1,0 +1,10 @@
+{
+  "name": "skillet",
+  "version": "0.31.1",
+  "description": "Personal collection of agent skills: PR automation, worktree management, and more",
+  "author": {
+    "name": "Leah Peker",
+    "email": "leahpeker@gmail.com"
+  },
+  "repository": "https://github.com/mungbeanfanfiction/skillet"
+}

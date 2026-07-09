@@ -1,12 +1,24 @@
 # skillet
 
-Personal marketplace of Claude Code skills.
+Personal marketplace of agent skills (Claude Code and Cursor).
 
 ## Install
+
+### Claude Code
 
 ```bash
 /plugin marketplace add mungbeanfanfiction/skillet
 /plugin install skillet@skillet
+```
+
+### Cursor
+
+**Team marketplace (Teams / Enterprise):** Dashboard → Settings → Plugins → Import Marketplace → `https://github.com/mungbeanfanfiction/skillet`, then install **skillet** from **Customize → Plugins**.
+
+**Local development:** symlink the plugin and reload the window:
+
+```bash
+ln -s /path/to/skillet/plugins/skillet ~/.cursor/plugins/local/skillet
 ```
 
 ## Skills
@@ -41,9 +53,12 @@ Personal marketplace of Claude Code skills.
 ## Layout
 
 ```
-.claude-plugin/marketplace.json   # marketplace manifest
+.claude-plugin/marketplace.json   # Claude Code marketplace manifest
+.cursor-plugin/marketplace.json   # Cursor marketplace manifest
 plugins/skillet/
-├── plugin.json                   # plugin manifest
+├── plugin.json                   # Claude Code plugin manifest
+├── .cursor-plugin/
+│   └── plugin.json               # Cursor plugin manifest
 ├── hooks/
 │   ├── hooks.json                # hook declarations
 │   ├── block-main-checkout.sh    # worktree-guard logic
@@ -95,7 +110,7 @@ Requires `python3` + `pytest` for the test suite, and `gh`/`jq`/`git`. See
 Versions are managed automatically by [semantic-release](https://semantic-release.gitbook.io/).
 Every merge to `main` is analyzed for [Conventional Commits](https://www.conventionalcommits.org/);
 the highest bump among the merged commits wins. On a releasable merge, CI bumps
-the version in `plugins/skillet/plugin.json` and `.claude-plugin/marketplace.json`,
+the version in `plugins/skillet/plugin.json`, `plugins/skillet/.cursor-plugin/plugin.json`, `.claude-plugin/marketplace.json`, and `.cursor-plugin/marketplace.json`,
 updates `CHANGELOG.md`, and pushes a `vX.Y.Z` tag — no manual step required.
 
 ### Commit conventions
