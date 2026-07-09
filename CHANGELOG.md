@@ -1,3 +1,9 @@
+## [0.30.1](https://github.com/mungbeanfanfiction/skillet/compare/v0.30.0...v0.30.1) (2026-07-09)
+
+### Bug Fixes
+
+* **skillet:** 72 - don't restart/stall worktrees whose PR already merged ([#78](https://github.com/mungbeanfanfiction/skillet/issues/78)) ([ddf8e88](https://github.com/mungbeanfanfiction/skillet/commit/ddf8e880cb9c19f3d60e686f78667681cdd373be))
+
 ## [0.30.0](https://github.com/mungbeanfanfiction/skillet/compare/v0.29.0...v0.30.0) (2026-07-08)
 
 ### Features
