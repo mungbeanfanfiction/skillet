@@ -3,6 +3,7 @@
 # Passive: writes .claude/status/STATUS.md for linked worktrees only.
 # Always exits 0 — never disrupts the session.
 set -u
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/status-common.sh"
 
 # Read the hook's stdin JSON. Bail quietly if jq is missing or input is unusable.
 command -v jq >/dev/null 2>&1 || exit 0
@@ -26,11 +27,7 @@ case "$git_dir" in
   *) exit 0 ;;          # main checkout → do nothing
 esac
 
-# Self-heal the local exclude so STATUS.md never pollutes git status / commits.
-exclude_file="$common_dir/info/exclude"
-mkdir -p "$(dirname "$exclude_file")"
-touch "$exclude_file"
-grep -qxF '.claude/status/' "$exclude_file" 2>/dev/null || printf '.claude/status/\n' >>"$exclude_file"
+status_self_exclude "$common_dir"
 
 branch="$(git -C "$cwd" rev-parse --abbrev-ref HEAD 2>/dev/null)"
 dirty_count="$(git -C "$cwd" status --porcelain 2>/dev/null | wc -l | tr -d ' ')"
