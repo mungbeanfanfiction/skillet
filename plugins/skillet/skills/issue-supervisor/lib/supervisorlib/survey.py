@@ -1,6 +1,6 @@
 """Assemble the ground-truth survey JSON the SKILL.md consumes each cycle.
 Foreign worktrees are reported but never counted toward slots."""
-from supervisorlib import state as state_mod, slots
+from supervisorlib import capacity, state as state_mod, slots
 from supervisorlib.state import WorktreeState
 
 # PRs over this many changed lines (added + deleted) are blocked by open-pr; the
@@ -18,7 +18,8 @@ def _oversize_diff(facts: dict) -> bool:
     return facts.get("diff_changed_lines", 0) > PR_LINE_LIMIT
 
 
-def assemble(*, worktree_facts: list, eligible_issues: list) -> dict:
+def assemble(*, worktree_facts: list, eligible_issues: list, cap: int = None) -> dict:
+    cap = capacity.resolve_cap() if cap is None else cap
     worktrees = []
     in_flight_states = []
     for w in worktree_facts:
@@ -58,6 +59,9 @@ def assemble(*, worktree_facts: list, eligible_issues: list) -> dict:
         worktrees.append(entry)
     return {
         "worktrees": worktrees,
-        "free_slots": slots.free(in_flight_states, cap=3),
+        "free_slots": slots.free(in_flight_states, cap=cap),
+        # Reported so the digest can print `slots F/N` against the cap actually in
+        # force, rather than a constant that may no longer be 3.
+        "slot_cap": cap,
         "eligible_issues": [i["number"] for i in eligible_issues],
     }

@@ -1,6 +1,6 @@
 ---
 name: issue-supervisor
-description: Supervise auto-labeled GitHub issues (or a markdown checklist) across git worktrees — survey ground truth, restart stalled background sessions, dispatch new work to fill 3 slots, groom the backlog. Repo-agnostic. Use when running the ~5h supervisor loop.
+description: Supervise auto-labeled GitHub issues (or a markdown checklist) across git worktrees — survey ground truth, restart stalled background sessions, dispatch new work to fill its concurrency slots, groom the backlog. Repo-agnostic. Use when running the ~5h supervisor loop.
 argument-hint: "[--label <name> | --file <path>]"
 ---
 
@@ -96,11 +96,15 @@ unchanged conflict state. A checkpoint advances only for the signal it actually
 dispatched on; a fresh conflict (base or head moved) or newer comments re-trigger
 on a later pass. The script **skips** any worktree with a live session or a
 pending `question.md`, so it never clobbers in-flight work. A PR-watch session
-does not consume one of the 3 issue slots (a `pr-open` worktree is not
-in-flight); it is PR maintenance, not new issue work. Surface each acted-on PR
-(number + reasons) in the step-5 report.
+does not consume an issue slot (a `pr-open` worktree is not in-flight); it is PR
+maintenance, not new issue work. Surface each acted-on PR (number + reasons) in
+the step-5 report.
 
 ## 4. Refill slots
+The survey reports both `free_slots` and the `slot_cap` they're counted against.
+The cap is **host-aware, not a fixed 3** (see "Concurrency + host resources"):
+never assume 3 — read `slot_cap` from the survey.
+
 While `free_slots > 0` and the queue is non-empty, take the next item:
 - **Label queue:** lowest `eligible_issues` number. Fetch the body
   (`gh issue view <n>`), judge scope.
@@ -131,7 +135,7 @@ Print a **tight, scannable digest** — only what changed or was acted on this
 cycle. Default to a few lines, not a long-form report. Suggested shape (omit any
 line that's empty/zero rather than printing "none"):
 ```
-survey: N working, M stalled, K needs-input, J pr-open  (P foreign) · slots F/3
+survey: N working, M stalled, K needs-input, J pr-open  (P foreign) · slots F/C
 acted: restarted #12 #34 · dispatched #56 #78 · groomed #90→epic (+3 sub-issues)
 pr-watch: [#43](https://github.com/owner/name/pull/43) comment-dispatched · [#45](https://github.com/owner/name/pull/45) conflict-dispatched
 conflict-escalated: #45 — unclean, needs human (see question-sweeper)
@@ -139,9 +143,12 @@ oversize: #56 (612 lines) — needs split
 merged: #47 #48 — safe to clean up
 blocked: #41 restart_cap
 ```
+`slots F/C` is the survey's `free_slots` over its `slot_cap`.
+
 Print the `merged` line for every worktree whose survey entry has
 `cleanup_candidate: true`. These are done, not stuck — run `/cleanup-worktrees`
 (see step 6's autonomy rules) rather than restarting or escalating them.
+
 Print the `conflict-escalated` line for every worktree whose survey entry has
 `conflict_escalated: true` — an unclean merge conflict `resolve-conflicts` could
 not safely auto-resolve. It also surfaces via the question-sweeper, but this line
@@ -221,6 +228,28 @@ it is both idle and provably safe.
 If the supervisor ever reaches a point where it genuinely needs a human decision,
 it does not prompt inline — it queues the question for the sweeper
 (`needs-input`) and moves on.
+
+## Concurrency + host resources
+Every in-flight slot is a full headless `claude` session that fans out subagents
+and runs the target repo's tests/build, so a slot costs real CPU and RAM. On a
+large repo the old fixed cap of 3 could saturate a laptop. The cap is now derived
+from host capacity by `supervisorlib.capacity`:
+
+- **Default:** the scarcer of `cpus // 4` and `total_RAM_GiB // 6`, clamped to
+  `[1, 3]`. A 16-core / 32 GiB desktop still gets 3; an 8-core / 8 GiB laptop
+  gets 1. A host whose CPU count or RAM can't be read skips that budget rather
+  than assuming the worst, so it falls back to 3 instead of throttling wrongly.
+- **Override:** set `SKILLET_SUPERVISOR_MAX_SLOTS=<n>` to pin the cap. An
+  override is honoured *above* the ceiling of 3 (a big machine that wants 8 slots
+  gets 8). A non-numeric or non-positive value is ignored and the default
+  applies — a typo never takes a cycle down.
+
+The resolved cap ships in the survey JSON as `slot_cap`; `free_slots` is already
+counted against it. §4's refill loop and §5's digest line read those two fields.
+
+To run the supervisor gently on a busy machine, lower the cap rather than
+throttling individual sessions:
+`SKILLET_SUPERVISOR_MAX_SLOTS=1 claude ... /issue-supervisor`.
 
 ## Hard rules
 No merge, no push to the base branch, only DRAFT PRs (those happen inside
