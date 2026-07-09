@@ -1,4 +1,4 @@
-from supervisorlib import survey
+from supervisorlib import state, survey
 from supervisorlib.state import WorktreeState as S
 
 
@@ -167,7 +167,7 @@ def test_foreign_worktree_is_never_flagged_escalated():
     assert "conflict_escalated" not in result["worktrees"][0]
 
 
-COLD = 61 * 60
+COLD = state.STALE_HEARTBEAT_SECONDS + 1
 
 
 def test_stale_live_session_is_flagged_and_frees_its_slot():
@@ -176,7 +176,9 @@ def test_stale_live_session_is_flagged_and_frees_its_slot():
          "facts": _facts(process_alive=True, heartbeat_age_seconds=COLD,
                          last_step="Bash (stage: ci)", exit_reason=None)},
     ]
-    result = survey.assemble(worktree_facts=worktree_facts, eligible_issues=[])
+    # Pin the cap: the default is host-derived, so a bare call would make the
+    # free_slots assertion depend on the machine running the suite.
+    result = survey.assemble(worktree_facts=worktree_facts, eligible_issues=[], cap=3)
     w = result["worktrees"][0]
     assert w["state"] == S.STALLED.value
     assert w["stale_heartbeat"] is True
