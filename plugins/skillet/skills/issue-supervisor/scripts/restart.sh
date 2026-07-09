@@ -54,9 +54,6 @@ from supervisorlib import spawn
 print(spawn.restart_prompt(issue=sys.argv[2]))
 PY
 )"
-CLAUDE="$(resolve_claude)"
 cd "$WT"
-nohup "$CLAUDE" -p "$PROMPT" --permission-mode acceptEdits --add-dir "$WT" \
-  > "$WT/.claude/session.log" 2>&1 &
-echo $! > "$WT/.claude/session.pid"
+spawn_capped_session "$WT" "$PROMPT"   # detached, under the per-session wall-clock cap
 echo "restarted #$ISSUE → $WT (restart #$NEW, pid $(cat "$WT/.claude/session.pid"))"

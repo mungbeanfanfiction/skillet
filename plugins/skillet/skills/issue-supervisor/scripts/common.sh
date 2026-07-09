@@ -33,6 +33,16 @@ WORKTREES_DIR="$REPO_ROOT/.claude/worktrees"
 # child — inherit the cap. Respects an explicit operator override.
 export PYTEST_XDIST_AUTO_NUM_WORKERS="${PYTEST_XDIST_AUTO_NUM_WORKERS:-3}"
 
+# Hard wall-clock ceiling for ONE dispatched session spawn (seconds). The supervisor's
+# heartbeat-based stall reap (state.is_stale + restart.sh) only fires DURING a survey
+# cycle — once the supervisor exits, a detached `nohup claude -p` session that hangs or
+# runs away has nothing watching it. This cap kills the run independently of the
+# supervisor: even if it (and everything else) is gone, a detached bash timer reaps the
+# session. It bounds a single spawn (RESTART_CAP already bounds respawns); real runs were
+# observed at ~6 min (explore) to ~50 min (implement), so 45 min covers the legit worst
+# case with a tight blast radius. Operator-overridable for a heavy task; 0/empty disables.
+export SKILLET_SESSION_TIMEOUT_SECONDS="${SKILLET_SESSION_TIMEOUT_SECONDS:-2700}"
+
 fail() { printf '{"error": %s}\n' "$(jq -Rn --arg m "$1" '$m')"; exit 1; }
 
 require_tools() {
@@ -75,6 +85,60 @@ resolve_claude() {
   if [ -n "$p" ]; then echo "$p"; return; fi
   if [ -x "$HOME/.claude/local/claude" ]; then echo "$HOME/.claude/local/claude"; return; fi
   fail "claude executable not found (set CLAUDE_BIN or install the CLI)"
+}
+
+# Spawn a dispatched session DETACHED, under a pure-bash wall-clock cap, from $PWD
+# (callers cd into the worktree first). Usage: spawn_capped_session <wt> <prompt>.
+# Writes the session pid to <wt>/.claude/session.pid and logs to session.log, exactly as
+# the previous inline `nohup … &` did — so restart.sh's pid-based reap is unchanged.
+#
+# The cap is a SECOND detached process (a sleep-then-kill timer), not `timeout(1)`:
+# macOS ships no `timeout`, and the whole point of this ceiling is to hold when nothing
+# else is alive — depending on an optional binary would reintroduce the very gap it
+# closes. The timer runs in a backgrounded subshell that is disowned so it outlives this
+# script, sleeps the cap, then SIGTERMs the session's process GROUP (kill -TERM -PGID) to
+# take the whole tree — claude, its CI child, xdist workers — followed by SIGKILL after a
+# 30s grace. It guards on pid_predates_file so a recycled pid is never signalled. A
+# session that finishes early leaves a harmless timer that finds the pid gone and no-ops.
+spawn_capped_session() {
+  local wt="$1" prompt="$2" claude pid cap
+  claude="$(resolve_claude)"
+  # Give the session its OWN process group (pgid == its pid) so the reaper can signal the
+  # whole tree — claude, its CI child, xdist workers — by group, not just the bare pid
+  # (which would orphan the children, the exact leak this cap exists to stop). `setsid`
+  # would do this but is absent on macOS; enabling bash job control (`set -m`) makes the
+  # next backgrounded job a group leader instead, and works everywhere bash does. Scoped
+  # to this function so we don't flip job control for the whole sourcing script.
+  local had_m=1; [[ $- == *m* ]] || had_m=0
+  set -m
+  nohup "$claude" -p "$prompt" --permission-mode acceptEdits --add-dir "$wt" \
+    > "$wt/.claude/session.log" 2>&1 &
+  pid=$!
+  [ "$had_m" = 1 ] || set +m
+  echo "$pid" > "$wt/.claude/session.pid"
+
+  cap="${SKILLET_SESSION_TIMEOUT_SECONDS:-0}"
+  case "$cap" in (''|0|*[!0-9]*) return ;; esac  # cap disabled/garbage → no timer
+  local pidfile="$wt/.claude/session.pid"
+  # Detached reaper. Re-reads the pidfile at fire time and confirms the live pid predates
+  # it (PID-reuse guard, same check restart.sh uses) before signalling.
+  (
+    sleep "$cap"
+    local cur; cur="$(cat "$pidfile" 2>/dev/null || true)"
+    case "$cur" in (''|*[!0-9]*) exit 0 ;; esac
+    [ "$cur" = "$pid" ] || exit 0                 # a respawn replaced us; not our job
+    kill -0 "$cur" 2>/dev/null || exit 0          # already exited cleanly
+    pid_predates_file "$cur" "$pidfile" || exit 0 # recycled pid — do not touch
+    # Signal the process GROUP when we own one (pid == pgid via `set -m`), else the pid.
+    if kill -0 -- "-$cur" 2>/dev/null; then
+      kill -TERM -- "-$cur" 2>/dev/null || true
+      sleep 30; kill -KILL -- "-$cur" 2>/dev/null || true
+    else
+      kill -TERM "$cur" 2>/dev/null || true
+      sleep 30; kill -KILL "$cur" 2>/dev/null || true
+    fi
+  ) >/dev/null 2>&1 &
+  disown 2>/dev/null || true
 }
 
 # Epoch mtime of $1. GNU form FIRST: GNU `stat -f` means "filesystem status" and
