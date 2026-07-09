@@ -107,7 +107,7 @@ def test_merged_worktree_is_a_cleanup_candidate_and_frees_its_slot():
         {"issue": 47, "path": "/wt/47", "branch": "auto-47", "owned": True,
          "facts": _facts(pr_merged=True, process_alive=False, restart_count=2)},
     ]
-    result = survey.assemble(worktree_facts=worktree_facts, eligible_issues=[])
+    result = survey.assemble(worktree_facts=worktree_facts, eligible_issues=[], cap=3)
     w = result["worktrees"][0]
     assert w["state"] == S.MERGED.value
     assert w["cleanup_candidate"] is True
