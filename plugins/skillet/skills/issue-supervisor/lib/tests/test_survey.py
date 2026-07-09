@@ -11,11 +11,14 @@ def test_assemble_produces_states_and_free_slots():
          "facts": {"process_alive": False, "has_question_md": True, "task_complete": False,
                    "has_open_pr": False, "restart_count": 0, "task_md_present": True}},
     ]
-    result = survey.assemble(worktree_facts=worktree_facts, eligible_issues=[{"number": 7}])
+    # Pin the cap: the default is host-derived, so a bare call would make the
+    # free_slots assertion depend on the machine running the suite.
+    result = survey.assemble(worktree_facts=worktree_facts, eligible_issues=[{"number": 7}], cap=3)
     by_issue = {w["issue"]: w for w in result["worktrees"]}
     assert by_issue[1]["state"] == S.WORKING.value
     assert by_issue[2]["state"] == S.NEEDS_INPUT.value
     assert result["free_slots"] == 2
+    assert result["slot_cap"] == 3
     assert result["eligible_issues"] == [7]
 
 
@@ -25,7 +28,7 @@ def test_foreign_worktrees_never_consume_a_slot():
          "facts": {"process_alive": False, "has_question_md": False, "task_complete": False,
                    "has_open_pr": False, "restart_count": 0, "task_md_present": False}},
     ]
-    result = survey.assemble(worktree_facts=worktree_facts, eligible_issues=[])
+    result = survey.assemble(worktree_facts=worktree_facts, eligible_issues=[], cap=3)
     assert result["worktrees"][0]["owned"] is False
     assert result["free_slots"] == 3
 
