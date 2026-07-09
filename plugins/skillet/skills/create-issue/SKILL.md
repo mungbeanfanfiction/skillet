@@ -84,7 +84,9 @@ Pick labels from the canonical set (no confirmation):
   clearly touches. If it touches none (e.g. a pure docs/tooling chore), include
   no area label.
 - **Priority:** exactly one. Use `p0` only for urgent/blocking; `p1` for high;
-  default to `p2` when unclear.
+  default to `p2` when unclear — except a `bug`, which defaults to `p1`, since it
+  means something is already broken. A bug the conversation clearly describes as
+  minor or cosmetic may still be set to `p2`.
 
 ### 4. Ensure the needed labels exist
 

@@ -158,7 +158,9 @@ Label taxonomy lives in `../_shared/labels.json` (read before labeling):
 - **Area:** zero or more of `frontend` / `backend` / `database` it clearly
   touches.
 - **Priority:** exactly one; `p0` only for urgent/blocking, `p1` high, default
-  `p2`.
+  `p2` — except a `bug`, which defaults to `p1`, since it means something is
+  already broken. A bug the issue clearly describes as minor or cosmetic may
+  still be set to `p2`.
 
 Ensure needed labels exist before applying. Fetch existing once:
 
