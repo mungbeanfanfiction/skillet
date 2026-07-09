@@ -23,8 +23,19 @@ if [ -f "$PID_FILE" ]; then
   # ran earlier, so OLD_PID may have exited and the OS recycled it) via pid_predates_file,
   # and no-ops on a non-numeric/dead/recycled pid. Shared with spawn_capped_session's
   # wall-clock reaper so the two reap paths stay identical.
-  reap_pid "$OLD_PID" "$PID_FILE" && \
-    { case "$OLD_PID" in ''|*[!0-9]*) : ;; *) echo "reaped hung session pid $OLD_PID at $WT" ;; esac; }
+  # Only log a reap when something was actually alive to kill — reap_pid always returns 0
+  # (even for a dead/recycled/empty pid), so gating the message on its exit status would
+  # print "reaped" on every ordinary exited-session restart. Check liveness up front instead.
+  WAS_ALIVE=false
+  case "$OLD_PID" in
+    ''|*[!0-9]*) : ;;
+    *) if kill -0 -- "-$OLD_PID" 2>/dev/null || kill -0 "$OLD_PID" 2>/dev/null; then WAS_ALIVE=true; fi ;;
+  esac
+  # Short grace: restart.sh runs SYNCHRONOUSLY on the survey's critical path, so a 5s
+  # TERM→KILL window (matching the old reap) avoids stalling the cycle up to 30s per hung
+  # worktree. The detached wall-clock reaper keeps the longer default grace.
+  reap_pid "$OLD_PID" "$PID_FILE" 5
+  [ "$WAS_ALIVE" = true ] && echo "reaped hung session pid $OLD_PID at $WT"
 fi
 
 # Drop the cold heartbeat, else a survey landing before the respawn's first tool call

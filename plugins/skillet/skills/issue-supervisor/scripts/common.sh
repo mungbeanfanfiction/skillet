@@ -125,14 +125,25 @@ spawn_capped_session() {
   cap="${SKILLET_SESSION_TIMEOUT_SECONDS:-}"
   case "$cap" in (''|0|*[!0-9]*) return ;; esac
   local pidfile="$wt/.claude/session.pid"
-  # Detached reaper: sleep the cap, then reap the tree IF the pidfile still names this exact
-  # session (a respawn would have overwritten it — not our job). reap_pid does the group
-  # kill + pid-reuse guards; sharing it with restart.sh keeps the two reap paths identical.
+  # Detached reaper. Polls in short intervals up to the cap rather than one blind full-cap
+  # sleep, so a session that finishes early (most do — explore runs ~6 min vs a 60-min cap)
+  # frees this timer within ~15s instead of leaving an hour-long sleep parked.
+  # It exits the instant the session is gone or a respawn overwrote the pidfile (not our
+  # job); only a session that outlives the whole cap gets reaped. reap_pid does the group
+  # kill + reuse guards, shared with restart.sh so the two reap paths can never drift.
   (
-    sleep "$cap"
-    local cur; cur="$(cat "$pidfile" 2>/dev/null || true)"
-    [ "$cur" = "$pid" ] || exit 0                 # a respawn replaced us; not our job
-    reap_pid "$cur" "$pidfile"
+    local waited=0 step=15 cur
+    while [ "$waited" -lt "$cap" ]; do
+      [ $((cap - waited)) -lt "$step" ] && step=$((cap - waited))
+      sleep "$step"; waited=$((waited + step))
+      cur="$(cat "$pidfile" 2>/dev/null || true)"
+      [ "$cur" = "$pid" ] || exit 0               # respawn overwrote the pidfile → not our job
+      # Exit early only when the whole TREE is gone (leader AND any xdist children). Checking
+      # the group, not the bare leader pid, is deliberate: claude can exit while a runaway
+      # worker keeps burning CPU in the group — that must still hit the cap, not slip out here.
+      kill -0 -- "-$pid" 2>/dev/null || kill -0 "$pid" 2>/dev/null || exit 0
+    done
+    reap_pid "$pid" "$pidfile"                     # outlived the cap → reap the tree
   ) >/dev/null 2>&1 &
   disown 2>/dev/null || true
 }
@@ -161,67 +172,71 @@ pid_predates_file() {
   [ -n "$started" ] && [ "$started" -le "$mtime" ]
 }
 
-# True when process group $1 has at least one live member AND its OLDEST live member
-# started no later than $2's mtime. This is the group-level analogue of pid_predates_file,
-# and the key to reaping a dead-leader-live-children tree: once the leader (claude) exits,
-# pid_predates_file can't validate it (ps can't read a dead pid's start time), but the
-# group's surviving xdist workers still carry the original pgid. Validating the oldest
-# member guards PID/PGID reuse — a recycled group's members would all have started AFTER
-# the pidfile was written. Fails closed (returns 1) if the group is empty or any timestamp
-# is unreadable, so we never group-signal an unrelated recycled pgid.
+# Live PIDs whose process GROUP id == $1, one per line. Post-filters `ps -Ao pid=,pgid=`
+# on the pgid column rather than using `ps -g`: on macOS/BSD `-g` selects by process group,
+# but on Linux/procps `-g` selects by SESSION id — and since sessions get `set -m` (new
+# group) not `setsid` (new session), pgid != sid there, so `ps -g $pgid` would return the
+# wrong (usually empty) set and the dead-leader reap would silently no-op on Linux. The
+# column filter means the same thing on both.
+group_members() { ps -Ao pid=,pgid= 2>/dev/null | awk -v g="$1" '$2==g{print $1}'; }
+
+# True when process group $1 has at least one live member that started no later than $2's
+# mtime. The group-level analogue of pid_predates_file, and the key to reaping a
+# dead-leader-live-children tree: once the leader (claude) exits, pid_predates_file can't
+# validate it (ps can't read a dead pid's start time), but the group's surviving xdist
+# workers still carry the original pgid. A member predating the pidfile proves the group is
+# NOT a recycled pgid (whose members would all have started AFTER the file was written), so
+# the FIRST such member is sufficient — no need to scan for the oldest. Fails closed
+# (returns 1) if the group is empty or no member predates, so we never signal a recycled pgid.
 group_predates_file() {
-  local pgid="$1" pidfile="$2" mtime members oldest p started min=
+  local pgid="$1" pidfile="$2" mtime p started
   mtime="$(file_mtime "$pidfile")" || return 1
   case "$mtime" in (''|*[!0-9]*) return 1 ;; esac
-  members="$(ps -o pid= -g "$pgid" 2>/dev/null)" || return 1
-  [ -n "$members" ] || return 1                      # empty group → nothing ours to reap
-  for p in $members; do
+  for p in $(group_members "$pgid"); do
     started="$(pid_started "$p")" || continue
     case "$started" in (''|*[!0-9]*) continue ;; esac
-    { [ -z "$min" ] || [ "$started" -lt "$min" ]; } && min="$started"
+    [ "$started" -le "$mtime" ] && return 0    # one predating member proves the group is ours
   done
-  [ -n "$min" ] || return 1
-  [ "$min" -le "$mtime" ]
+  return 1
 }
 
-# Reap the process TREE of a dispatched session, given its pid $1 and the pidfile $2 the
-# pid was read from. Sessions are spawned as process-group leaders (pgid == pid, via
-# `set -m` in spawn_capped_session), so signalling the GROUP `-$pid` takes claude AND its
-# CI child + xdist workers — killing only the bare pid orphans those children, the exact
-# leak this whole mechanism exists to stop. Both the wall-clock reaper and restart.sh's
-# stall-reap call this, so the two reap paths can never drift.
+# Reap the process TREE of a dispatched session: pid $1, the pidfile $2 it was read from,
+# and an optional TERM→KILL grace in seconds $3 (default 30). Sessions are spawned as
+# process-group leaders (pgid == pid, via `set -m` in spawn_capped_session), so signalling
+# the GROUP `-$pid` takes claude AND its CI child + xdist workers — killing only the bare
+# pid orphans those children, the exact leak this exists to stop. Both the wall-clock reaper
+# and restart.sh's stall-reap call this, so the two reap paths can never drift; restart.sh
+# passes a short grace because it runs SYNCHRONOUSLY on the survey's critical path.
 #
-# Safety: never signals an unrelated (recycled) pid/pgid. It validates provenance by START
-# TIME — a recycled pid/group necessarily started AFTER the pidfile was written. Crucially
-# it does NOT require the LEADER to be alive: the common runaway is claude exiting while its
-# xdist workers keep burning CPU in the group, so when the leader is dead we validate the
-# group's oldest live member instead (group_predates_file) and still sweep. Escalates
-# SIGTERM → up-to-30s grace (polling, so we stop the instant the group empties) → SIGKILL,
-# re-validating before the delayed KILL. Best-effort: every kill is `|| true`.
+# Safety: never signals an unrelated (recycled) pid/pgid — validates provenance by START
+# TIME (a recycled pid/group started AFTER the pidfile was written). It does NOT require the
+# leader to be alive (dead-leader-live-children); when the leader is gone, group_predates_file
+# validates a surviving group member instead. Provenance is re-checked before the delayed
+# SIGKILL (the grace is a reuse window). Best-effort: every kill is `|| true`.
 reap_pid() {
-  local pid="$1" pidfile="$2" i
+  local pid="$1" pidfile="$2" grace="${3:-30}" i target sig
   case "$pid" in (''|*[!0-9]*) return 0 ;; esac
 
-  # Group path: reap the whole tree when the group is ours. Provenance is proven by the
-  # LIVE leader (pid_predates_file) OR, if the leader already exited, by the group's oldest
-  # live member (group_predates_file) — the latter is what closes dead-leader-live-children.
-  if kill -0 -- "-$pid" 2>/dev/null \
-     && { pid_predates_file "$pid" "$pidfile" || group_predates_file "$pid" "$pidfile"; }; then
-    kill -TERM -- "-$pid" 2>/dev/null || true
-    for i in $(seq 1 30); do kill -0 -- "-$pid" 2>/dev/null || return 0; sleep 1; done
-    { pid_predates_file "$pid" "$pidfile" || group_predates_file "$pid" "$pidfile"; } || return 0
-    kill -KILL -- "-$pid" 2>/dev/null || true
-    return 0
+  # One escalation, two possible targets. Prefer the whole GROUP (`-$pid`) when it's live
+  # and ours; else fall back to the bare pid for a legacy pre-`set -m` session. Collapsing
+  # the two into a single `target` keeps the TERM→grace→KILL logic in one place.
+  if kill -0 -- "-$pid" 2>/dev/null && _reap_provenance_ok "$pid" "$pidfile"; then
+    target="-$pid"                                   # signal the process group
+  elif kill -0 "$pid" 2>/dev/null && pid_predates_file "$pid" "$pidfile"; then
+    target="$pid"                                    # legacy: bare-pid, live leader only
+  else
+    return 0                                         # nothing ours to reap
   fi
 
-  # No group survives (session not a group leader, e.g. an older pre-`set -m` spawn).
-  # Fall back to the bare pid — requires a live pid, so pid_predates_file guards reuse.
-  kill -0 "$pid" 2>/dev/null || return 0
-  pid_predates_file "$pid" "$pidfile" || return 0
-  kill -TERM "$pid" 2>/dev/null || true
-  for i in $(seq 1 30); do kill -0 "$pid" 2>/dev/null || return 0; sleep 1; done
-  pid_predates_file "$pid" "$pidfile" || return 0
-  kill -KILL "$pid" 2>/dev/null || true
+  kill -TERM -- "$target" 2>/dev/null || true
+  for i in $(seq 1 "$grace"); do kill -0 -- "$target" 2>/dev/null || return 0; sleep 1; done
+  # Re-validate before the delayed KILL: a pid/pgid recycled during the grace must be spared.
+  _reap_provenance_ok "$pid" "$pidfile" || return 0
+  kill -KILL -- "$target" 2>/dev/null || true
 }
+
+# Provenance for reap_pid: the pid predates the pidfile (live leader) OR a surviving group
+# member does (leader already exited). Either proves this pid/group is the original session.
+_reap_provenance_ok() { pid_predates_file "$1" "$2" || group_predates_file "$1" "$2"; }
 
 mkdir -p "$STATE_DIR"

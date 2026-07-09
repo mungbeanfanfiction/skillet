@@ -22,17 +22,38 @@ def test_session_timeout_default_is_set_and_overridable():
 
 def test_reaper_signals_the_process_group_not_just_the_pid():
     # Killing the bare pid orphans claude's CI child + xdist workers — the exact leak this
-    # exists to stop. The shared reap_pid MUST signal the group (kill … -"$pid").
+    # exists to stop. The shared reap_pid MUST prefer the GROUP target (`target="-$pid"`).
     assert "reap_pid()" in COMMON
-    assert 'kill -TERM -- "-$pid"' in COMMON
-    assert 'kill -KILL -- "-$pid"' in COMMON
+    assert 'target="-$pid"' in COMMON            # group is the primary target
+    assert 'kill -TERM -- "$target"' in COMMON
+    assert 'kill -KILL -- "$target"' in COMMON
 
 
 def test_reaper_handles_dead_leader_with_live_children():
-    # The runaway case is claude (group leader) exiting while its xdist workers keep
-    # burning CPU. reap_pid must validate the group's oldest live member when the leader
-    # is dead (pid_predates_file can't read a dead pid) and still sweep the group.
+    # The runaway case is claude (group leader) exiting while its xdist workers keep burning
+    # CPU. reap_pid must validate a surviving group member when the leader is dead
+    # (pid_predates_file can't read a dead pid) and still sweep the group.
     assert "group_predates_file" in COMMON
+
+
+def test_group_enumeration_is_portable_not_ps_dash_g():
+    # `ps -g N` means process-GROUP on macOS/BSD but SESSION-id on Linux/procps. Since
+    # sessions get `set -m` (new group) not setsid (new session), pgid != sid on Linux, so
+    # `ps -g $pgid` would return the wrong/empty set and the dead-leader reap would no-op
+    # there. Enumerate by post-filtering the pgid column instead so it means the same thing
+    # on both platforms.
+    assert "group_members()" in COMMON
+    assert "ps -Ao pid=,pgid=" in COMMON
+    assert 'ps -o pid= -g "$pgid"' not in COMMON   # the non-portable form must be gone
+
+
+def test_reaper_polls_rather_than_blind_sleeping_the_cap():
+    # A session finishing early must free the detached timer promptly, not leave an
+    # hour-long `sleep` parked. The reaper loops in short steps and exits when the session
+    # is gone or the pidfile was overwritten — it must NOT `sleep "$cap"` in one shot.
+    assert 'sleep "$cap"' not in COMMON
+    assert "step=15" in COMMON
+    assert 'while [ "$waited" -lt "$cap" ]' in COMMON
 
 
 def test_session_gets_its_own_process_group():
@@ -60,11 +81,28 @@ def test_reaper_guards_against_pid_reuse():
 
 
 def test_reuse_guard_rechecked_before_delayed_sigkill():
-    # The 30s TERM→KILL grace is a PID-reuse window: a pid recycled during the grace must
-    # not be SIGKILLed. reap_pid re-validates provenance right before the delayed KILL.
+    # The TERM→KILL grace is a PID/PGID-reuse window: a pid/group recycled during the grace
+    # must not be SIGKILLed. reap_pid re-validates provenance right before the delayed KILL.
     body = COMMON[COMMON.index("reap_pid()"):]
-    # both kill branches re-run a predates check before their `kill -KILL`
-    assert body.count("|| return 0") >= 4  # numeric guard + group/bare pre-KILL rechecks
+    kill_idx = body.index("kill -KILL")
+    # the provenance recheck must appear BETWEEN the grace loop and the SIGKILL
+    assert "_reap_provenance_ok" in body[:kill_idx]
+
+
+def test_restart_uses_a_short_synchronous_grace():
+    # restart.sh calls reap_pid INLINE on the survey's critical path, so it must pass a short
+    # grace (not the default 30s) to avoid stalling the loop up to 30s per hung worktree.
+    src = (SCRIPTS / "restart.sh").read_text()
+    assert 'reap_pid "$OLD_PID" "$PID_FILE" 5' in src
+
+
+def test_restart_only_logs_reap_when_something_was_alive():
+    # reap_pid always returns 0 (even for a dead/recycled pid), so gating the "reaped" log on
+    # its exit status would print on every ordinary exited-session restart. restart.sh must
+    # check liveness up front and only log a real reap.
+    src = (SCRIPTS / "restart.sh").read_text()
+    assert "WAS_ALIVE" in src
+    assert 'reap_pid "$OLD_PID" "$PID_FILE" && ' not in src  # the misleading gate must be gone
 
 
 def test_disabled_cap_skips_the_reaper():
