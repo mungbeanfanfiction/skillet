@@ -25,6 +25,12 @@ function runHook(toolInput, env = {}) {
   };
 }
 
+// 20k repetitions of `tmpl` (with %d substituted), enough to make a producer
+// still be writing when a downstream `head` closes the pipe.
+function line(tmpl) {
+  return Array.from({ length: 20000 }, (_, i) => tmpl.replace("%d", i) + "\n").join("");
+}
+
 // Heuristic 4 only fires on text landing at the file top. For an Edit that
 // means the file on disk must already start with old_string, so these cases
 // need a real file rather than a synthetic path.
@@ -125,6 +131,21 @@ test("flags a top-of-file comment that just restates the filename", () => {
   assert.match(reason, /restates the filename/);
 });
 
+test("a cross-ref or dependency note does not count as a why", () => {
+  for (const second of ["# See models.py.", "# Requires psycopg2."]) {
+    const { decision } = runHook({ file_path: "db.py", content: `# Database layer.\n${second}\nx = 1` });
+    assert.equal(decision, "ask", `"${second}" describes what, not why`);
+  }
+});
+
+test("counts avoids/avoiding as a why, but not the word 'avoidance'", () => {
+  const why = runHook({ file_path: "buf.py", content: "# Buffered here.\n# This avoids a syscall per row.\nx = 1" });
+  assert.equal(why.stdout, "");
+
+  const notWhy = runHook({ file_path: "layer.py", content: "# Avoidance layer.\n# Wraps the client.\nx = 1" });
+  assert.equal(notWhy.decision, "ask");
+});
+
 test("spares a one-line header", () => {
   const { stdout } = runHook({ file_path: "auth.py", content: "# Auth helpers.\ndef f(): pass" });
   assert.equal(stdout, "");
@@ -202,6 +223,31 @@ test("detects a top-of-file Edit whose old_string holds multibyte characters", (
     assert.equal(decision, "ask");
     assert.match(reason, /Top-of-file/);
   });
+});
+
+// The hook's contract is that it never disrupts a session. Quoting an offender
+// back to the author must not make it die on a large input: piping a long
+// producer into `head` lets `head` close the pipe first, and the resulting
+// SIGPIPE trips `set -o pipefail` into a 141 exit.
+test("survives a huge comment block on every heuristic (no SIGPIPE)", () => {
+  const cases = {
+    "top-of-file": { file_path: "big.py", content: line("# what line %d here.") + "x = 1" },
+    narration: { file_path: "big.js", content: line("// increment i%d") + "x = 1;" },
+    "step-N": { file_path: "step.js", content: line("// Step %d: do it") + "x = 1;" },
+  };
+  for (const [name, toolInput] of Object.entries(cases)) {
+    // execFileSync throws on a non-zero exit, so reaching the assert means exit 0.
+    const { decision } = runHook(toolInput);
+    assert.equal(decision, "ask", `${name} should still flag a 20k-line block`);
+  }
+});
+
+test("tolerates CRLF line endings", () => {
+  const { decision } = runHook({
+    file_path: "auth.py",
+    content: "# handles auth.\r\n# used by the router.\r\nx = 1\r\n",
+  });
+  assert.equal(decision, "ask");
 });
 
 test("SKILLET_ALLOW_FILE_HEADERS=1 disables only the top-of-file heuristic", () => {

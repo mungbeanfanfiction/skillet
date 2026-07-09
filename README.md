@@ -36,7 +36,28 @@ Personal marketplace of Claude Code skills.
 | Hook | What it does |
 |---|---|
 | Worktree guard (`PreToolUse`) | Before any `Edit`/`Write`/`NotebookEdit`, asks for confirmation if you're editing the **primary checkout** instead of a git worktree. Prevents concurrent sessions from clobbering each other in the shared main checkout. Worktrees proceed without a prompt. |
-| Verbose-comment guard (`PreToolUse`) | Before an `Edit`/`Write` to a source file, asks for confirmation when the edit adds **overly verbose, low-value comments** — line-by-line narration that restates the code, `Step N` play-by-play, or comment-heavy diffs. Nudges comments toward explaining *why*, not *what*. Clean edits proceed without a prompt. |
+| Verbose-comment guard (`PreToolUse`) | Before an `Edit`/`Write` to a source file, asks for confirmation when the edit adds **overly verbose, low-value comments** — line-by-line narration that restates the code, `Step N` play-by-play, comment-heavy diffs, or a **top-of-file header that says only *what* a file is**. Nudges comments toward explaining *why*, not *what*. Clean edits proceed without a prompt. |
+
+### Top-of-file comments
+
+The verbose-comment guard flags a leading comment block that just names or
+summarizes the file, since that restates what the code already shows. A header
+that explains *why* — a constraint, a footgun, a rejected alternative — passes
+regardless of length; the rule reads the header's content, not its size.
+
+Always exempt: shebangs, license/copyright/SPDX banners, generated-file markers,
+pragmas and linter directives (`# type:`, `//go:`, `/* eslint-disable */`, …),
+docstrings, and any single-line header.
+
+To disable just this check where a file genuinely needs a header:
+
+```bash
+export SKILLET_ALLOW_FILE_HEADERS=1
+```
+
+The other three heuristics keep running. The rule lives in
+`plugins/skillet/hooks/block-verbose-comments.sh` (heuristic 4); its behavior is
+pinned by `scripts/block-verbose-comments.test.mjs`.
 
 ## Layout
 

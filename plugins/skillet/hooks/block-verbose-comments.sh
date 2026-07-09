@@ -63,14 +63,15 @@ narration=$(printf '%s\n' "$comment_lines" \
   || true)
 if [ -n "$narration" ]; then
   flagged+="Narration comments that restate the code (explain *why*, not *what*):"$'\n'
-  flagged+="$(printf '%s\n' "$narration" | head -5 | sed 's/^/  • /')"$'\n'
+  flagged+="$(head -5 <<<"$narration" | sed 's/^/  • /')"$'\n'
 fi
 
 # --- Heuristic 2: step-by-step play-by-play ----------------------------------
-steps=$(printf '%s\n' "$comment_lines" | grep -icE '(//|#|--)[[:space:]]*step[[:space:]]*[0-9]' || true)
+step_lines=$(grep -iE '(//|#|--)[[:space:]]*step[[:space:]]*[0-9]' <<<"$comment_lines" || true)
+steps=$(grep -cE '[^[:space:]]' <<<"$step_lines" || true)
 if [ "$steps" -ge 2 ]; then
   flagged+="Step-by-step \"Step N\" play-by-play comments ($steps found) — usually noise:"$'\n'
-  flagged+="$(printf '%s\n' "$comment_lines" | grep -iE '(//|#|--)[[:space:]]*step[[:space:]]*[0-9]' | head -3 | sed -E 's/^[0-9]+://; s/^[[:space:]]*/  • /')"$'\n'
+  flagged+="$(head -3 <<<"$step_lines" | sed -E 's/^[0-9]+://; s/^[[:space:]]*/  • /')"$'\n'
 fi
 
 # --- Heuristic 3: comment-heavy diff -----------------------------------------
@@ -138,9 +139,10 @@ if [ "${SKILLET_ALLOW_FILE_HEADERS:-0}" != "1" ]; then
     # Judge the header by content, not length. A long header that explains *why*
     # (constraints, footguns, rejected alternatives) earns its place; a short one
     # that just restates what the file is, is the narration this rule targets.
-    # So flag a header only when it carries no reasoning signal at all.
-    why_signal=$(printf '%s\n' "$header" \
-      | grep -icE '(\bbecause\b|\bso that\b|\bso it\b|\botherwise\b|\bwhy\b|\binstead\b|\brather than\b|\bwould\b|\bavoid|\bmust\b|\bcannot\b|\bcan not\b|\bnot\b .*\bbut\b|\bcaveat\b|\bgotcha\b|\bbeware\b|\bworkaround\b|\bhack\b|\bassumes?\b|\brequires?\b|\bbug\b|\bissue #|\bsee \b)' \
+    # So flag a header only when it carries no reasoning signal at all. Bare
+    # cross-refs ("See models.py") and dependency notes ("Requires psycopg2")
+    # are deliberately not signals — they describe *what*, so they buy no pass.
+    why_signal=$(grep -icE '(\bbecause\b|\bso that\b|\bso it\b|\botherwise\b|\bwhy\b|\binstead\b|\brather than\b|\bwould\b|\bavoids?\b|\bavoiding\b|\bmust\b|\bcannot\b|\bcan not\b|\bnot\b .*\bbut\b|\bcaveat\b|\bgotcha\b|\bbeware\b|\bworkaround\b|\bhack\b|\bassumes?\b|\bbug\b|\bissue #)' <<<"$header" \
       || true)
 
     # Does the opening line just echo the filename? ("foo_bar.py" → "foo bar")
@@ -161,7 +163,7 @@ if [ "${SKILLET_ALLOW_FILE_HEADERS:-0}" != "1" ]; then
       else
         flagged+="Top-of-file comment block ($header_lines lines) describes *what* the file is, with no *why*:"$'\n'
       fi
-      flagged+="$(printf '%s\n' "$header" | head -3 | sed -E 's/^[[:space:]]*/  • /')"$'\n'
+      flagged+="$(head -3 <<<"$header" | sed -E 's/^[[:space:]]*/  • /')"$'\n'
       flagged+="  (set SKILLET_ALLOW_FILE_HEADERS=1 if this file genuinely needs a header)"$'\n'
     fi
   fi
