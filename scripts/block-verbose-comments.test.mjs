@@ -214,6 +214,42 @@ test("spares a /* */ license banner and a single-line pragma", () => {
   assert.equal(pragma.stdout, "");
 });
 
+// A license/copyright banner carries its exempt keyword on only ONE of its
+// lines; the continuation lines ("All rights reserved.", the MIT permission
+// grant) have none. Exemption must be sticky across the whole banner, else the
+// continuation lines leak into the header and flag a standard OSS license.
+test("spares a multi-line /* */ banner whose keyword is on one line only", () => {
+  const { stdout } = runHook({
+    file_path: "k.ts",
+    content:
+      "/*\n * Copyright 2026 Acme\n * All rights reserved.\n" +
+      " * Permission is hereby granted, free of charge, to any person obtaining\n" +
+      " * a copy of this software.\n */\nexport const f = () => 1",
+  });
+  assert.equal(stdout, "", "an OSS license block must not be flagged as what-narration");
+});
+
+test("spares a multi-line # banner whose keyword is on one line only", () => {
+  const { stdout } = runHook({
+    file_path: "lic.py",
+    content: "# Copyright 2026 Acme\n# All rights reserved.\n# Portions adapted from upstream.\ndef f(): pass",
+  });
+  assert.equal(stdout, "", "a #-style license block must not be flagged");
+});
+
+// The banner exemption must not bleed past the banner. A license block, a blank
+// line, then a genuine what-only header is still narration and must flag.
+test("still flags a real what-header that follows a license banner", () => {
+  const { decision, reason } = runHook({
+    file_path: "auth.py",
+    content:
+      "# Copyright 2026 Acme\n\n# This module handles authentication.\n" +
+      "# It exposes login() and logout().\ndef f(): pass",
+  });
+  assert.equal(decision, "ask");
+  assert.match(reason, /Top-of-file comment block/);
+});
+
 test("does not flag a comment block added mid-file", () => {
   withFile("mid.py", "def f():\n    return 1\n", (path) => {
     const { stdout } = runHook({
