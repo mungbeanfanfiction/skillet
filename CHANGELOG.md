@@ -1,3 +1,9 @@
+## [0.30.2](https://github.com/mungbeanfanfiction/skillet/compare/v0.30.1...v0.30.2) (2026-07-09)
+
+### Bug Fixes
+
+* **skillet:** 77 - host-aware, configurable supervisor concurrency cap ([#79](https://github.com/mungbeanfanfiction/skillet/issues/79)) ([00fc171](https://github.com/mungbeanfanfiction/skillet/commit/00fc1715937c10200387f57badc57019a0f31347)), closes [#77](https://github.com/mungbeanfanfiction/skillet/issues/77) [#77](https://github.com/mungbeanfanfiction/skillet/issues/77)
+
 ## [0.30.1](https://github.com/mungbeanfanfiction/skillet/compare/v0.30.0...v0.30.1) (2026-07-09)
 
 ### Bug Fixes
