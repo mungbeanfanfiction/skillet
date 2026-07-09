@@ -39,9 +39,12 @@ export PYTEST_XDIST_AUTO_NUM_WORKERS="${PYTEST_XDIST_AUTO_NUM_WORKERS:-3}"
 # runs away has nothing watching it. This cap kills the run independently of the
 # supervisor: even if it (and everything else) is gone, a detached bash timer reaps the
 # session. It bounds a single spawn (RESTART_CAP already bounds respawns); real runs were
-# observed at ~6 min (explore) to ~50 min (implement), so 45 min covers the legit worst
-# case with a tight blast radius. Operator-overridable for a heavy task; 0/empty disables.
-export SKILLET_SESSION_TIMEOUT_SECONDS="${SKILLET_SESSION_TIMEOUT_SECONDS:-2700}"
+# observed at ~6 min (explore) to ~50 min (implement), so 60 min sits comfortably above the
+# legit worst case while still bounding a runaway far tighter than the old effectively-
+# unbounded behavior. Operator-overridable for a heavier task; `0` or empty disables it.
+# `-` not `:-`: an explicitly-empty override (`SKILLET_SESSION_TIMEOUT_SECONDS=`) must
+# survive to the disable branch, not be silently reset to the default.
+export SKILLET_SESSION_TIMEOUT_SECONDS="${SKILLET_SESSION_TIMEOUT_SECONDS-3600}"
 
 fail() { printf '{"error": %s}\n' "$(jq -Rn --arg m "$1" '$m')"; exit 1; }
 
@@ -56,7 +59,7 @@ detect_repo() { gh repo view --json nameWithOwner --jq '.nameWithOwner' 2>/dev/n
 detect_base() { gh repo view --json defaultBranchRef --jq '.defaultBranchRef.name' 2>/dev/null || echo "main"; }
 
 # NOTE: the repo's CI command is detected by the dispatched SESSION at runtime
-# (the order — make ci → make agent-ci → npm test → pytest → documented check — is
+# (the order — make agent-ci → make ci → npm test → pytest → documented check — is
 # in spawn.PIPELINE), not here, so there is no detect_ci_cmd() helper. Add one
 # only if a script ever needs to run CI directly.
 
@@ -117,26 +120,19 @@ spawn_capped_session() {
   [ "$had_m" = 1 ] || set +m
   echo "$pid" > "$wt/.claude/session.pid"
 
-  cap="${SKILLET_SESSION_TIMEOUT_SECONDS:-0}"
-  case "$cap" in (''|0|*[!0-9]*) return ;; esac  # cap disabled/garbage → no timer
+  # The export above already resolved default-vs-override (and preserved an empty override),
+  # so just read it. Empty / 0 / non-numeric → no timer (cap disabled).
+  cap="${SKILLET_SESSION_TIMEOUT_SECONDS:-}"
+  case "$cap" in (''|0|*[!0-9]*) return ;; esac
   local pidfile="$wt/.claude/session.pid"
-  # Detached reaper. Re-reads the pidfile at fire time and confirms the live pid predates
-  # it (PID-reuse guard, same check restart.sh uses) before signalling.
+  # Detached reaper: sleep the cap, then reap the tree IF the pidfile still names this exact
+  # session (a respawn would have overwritten it — not our job). reap_pid does the group
+  # kill + pid-reuse guards; sharing it with restart.sh keeps the two reap paths identical.
   (
     sleep "$cap"
     local cur; cur="$(cat "$pidfile" 2>/dev/null || true)"
-    case "$cur" in (''|*[!0-9]*) exit 0 ;; esac
     [ "$cur" = "$pid" ] || exit 0                 # a respawn replaced us; not our job
-    kill -0 "$cur" 2>/dev/null || exit 0          # already exited cleanly
-    pid_predates_file "$cur" "$pidfile" || exit 0 # recycled pid — do not touch
-    # Signal the process GROUP when we own one (pid == pgid via `set -m`), else the pid.
-    if kill -0 -- "-$cur" 2>/dev/null; then
-      kill -TERM -- "-$cur" 2>/dev/null || true
-      sleep 30; kill -KILL -- "-$cur" 2>/dev/null || true
-    else
-      kill -TERM "$cur" 2>/dev/null || true
-      sleep 30; kill -KILL "$cur" 2>/dev/null || true
-    fi
+    reap_pid "$cur" "$pidfile"
   ) >/dev/null 2>&1 &
   disown 2>/dev/null || true
 }
@@ -163,6 +159,69 @@ pid_predates_file() {
   mtime="$(file_mtime "$2")" || return 1
   case "$started$mtime" in (*[!0-9]*|'') return 1 ;; esac
   [ -n "$started" ] && [ "$started" -le "$mtime" ]
+}
+
+# True when process group $1 has at least one live member AND its OLDEST live member
+# started no later than $2's mtime. This is the group-level analogue of pid_predates_file,
+# and the key to reaping a dead-leader-live-children tree: once the leader (claude) exits,
+# pid_predates_file can't validate it (ps can't read a dead pid's start time), but the
+# group's surviving xdist workers still carry the original pgid. Validating the oldest
+# member guards PID/PGID reuse — a recycled group's members would all have started AFTER
+# the pidfile was written. Fails closed (returns 1) if the group is empty or any timestamp
+# is unreadable, so we never group-signal an unrelated recycled pgid.
+group_predates_file() {
+  local pgid="$1" pidfile="$2" mtime members oldest p started min=
+  mtime="$(file_mtime "$pidfile")" || return 1
+  case "$mtime" in (''|*[!0-9]*) return 1 ;; esac
+  members="$(ps -o pid= -g "$pgid" 2>/dev/null)" || return 1
+  [ -n "$members" ] || return 1                      # empty group → nothing ours to reap
+  for p in $members; do
+    started="$(pid_started "$p")" || continue
+    case "$started" in (''|*[!0-9]*) continue ;; esac
+    { [ -z "$min" ] || [ "$started" -lt "$min" ]; } && min="$started"
+  done
+  [ -n "$min" ] || return 1
+  [ "$min" -le "$mtime" ]
+}
+
+# Reap the process TREE of a dispatched session, given its pid $1 and the pidfile $2 the
+# pid was read from. Sessions are spawned as process-group leaders (pgid == pid, via
+# `set -m` in spawn_capped_session), so signalling the GROUP `-$pid` takes claude AND its
+# CI child + xdist workers — killing only the bare pid orphans those children, the exact
+# leak this whole mechanism exists to stop. Both the wall-clock reaper and restart.sh's
+# stall-reap call this, so the two reap paths can never drift.
+#
+# Safety: never signals an unrelated (recycled) pid/pgid. It validates provenance by START
+# TIME — a recycled pid/group necessarily started AFTER the pidfile was written. Crucially
+# it does NOT require the LEADER to be alive: the common runaway is claude exiting while its
+# xdist workers keep burning CPU in the group, so when the leader is dead we validate the
+# group's oldest live member instead (group_predates_file) and still sweep. Escalates
+# SIGTERM → up-to-30s grace (polling, so we stop the instant the group empties) → SIGKILL,
+# re-validating before the delayed KILL. Best-effort: every kill is `|| true`.
+reap_pid() {
+  local pid="$1" pidfile="$2" i
+  case "$pid" in (''|*[!0-9]*) return 0 ;; esac
+
+  # Group path: reap the whole tree when the group is ours. Provenance is proven by the
+  # LIVE leader (pid_predates_file) OR, if the leader already exited, by the group's oldest
+  # live member (group_predates_file) — the latter is what closes dead-leader-live-children.
+  if kill -0 -- "-$pid" 2>/dev/null \
+     && { pid_predates_file "$pid" "$pidfile" || group_predates_file "$pid" "$pidfile"; }; then
+    kill -TERM -- "-$pid" 2>/dev/null || true
+    for i in $(seq 1 30); do kill -0 -- "-$pid" 2>/dev/null || return 0; sleep 1; done
+    { pid_predates_file "$pid" "$pidfile" || group_predates_file "$pid" "$pidfile"; } || return 0
+    kill -KILL -- "-$pid" 2>/dev/null || true
+    return 0
+  fi
+
+  # No group survives (session not a group leader, e.g. an older pre-`set -m` spawn).
+  # Fall back to the bare pid — requires a live pid, so pid_predates_file guards reuse.
+  kill -0 "$pid" 2>/dev/null || return 0
+  pid_predates_file "$pid" "$pidfile" || return 0
+  kill -TERM "$pid" 2>/dev/null || true
+  for i in $(seq 1 30); do kill -0 "$pid" 2>/dev/null || return 0; sleep 1; done
+  pid_predates_file "$pid" "$pidfile" || return 0
+  kill -KILL "$pid" 2>/dev/null || true
 }
 
 mkdir -p "$STATE_DIR"

@@ -17,20 +17,14 @@ WT="$1"; ISSUE="$2"; TASK="$WT/.claude/task.md"
 PID_FILE="$WT/.claude/session.pid"
 if [ -f "$PID_FILE" ]; then
   OLD_PID="$(cat "$PID_FILE" 2>/dev/null || true)"
-  case "$OLD_PID" in
-    ''|*[!0-9]*) : ;;
-    *)
-      # Never signal a bare PID: the survey ran earlier, so the session may have exited
-      # and the OS recycled its PID. (Matching the worktree path in argv fails — `ps`
-      # truncates at 3072 bytes, past where `--add-dir` lands behind the ~4KB prompt.)
-      if kill -0 "$OLD_PID" 2>/dev/null && pid_predates_file "$OLD_PID" "$PID_FILE"; then
-        kill -TERM "$OLD_PID" 2>/dev/null || true
-        for _ in 1 2 3 4 5; do kill -0 "$OLD_PID" 2>/dev/null || break; sleep 1; done
-        kill -KILL "$OLD_PID" 2>/dev/null || true
-        echo "reaped hung session pid $OLD_PID at $WT"
-      fi
-      ;;
-  esac
+  # reap_pid signals the whole process GROUP (not just the bare pid), so the hung session's
+  # CI child + xdist workers die with it — killing only OLD_PID would orphan exactly the
+  # runaway children this reap exists to stop. It also guards against PID reuse (the survey
+  # ran earlier, so OLD_PID may have exited and the OS recycled it) via pid_predates_file,
+  # and no-ops on a non-numeric/dead/recycled pid. Shared with spawn_capped_session's
+  # wall-clock reaper so the two reap paths stay identical.
+  reap_pid "$OLD_PID" "$PID_FILE" && \
+    { case "$OLD_PID" in ''|*[!0-9]*) : ;; *) echo "reaped hung session pid $OLD_PID at $WT" ;; esac; }
 fi
 
 # Drop the cold heartbeat, else a survey landing before the respawn's first tool call
