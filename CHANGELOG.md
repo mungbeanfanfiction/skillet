@@ -1,3 +1,9 @@
+## [0.32.0](https://github.com/mungbeanfanfiction/skillet/compare/v0.31.1...v0.32.0) (2026-07-09)
+
+### Features
+
+* **skillet:** add Cursor plugin manifests for team marketplace install ([5be16c9](https://github.com/mungbeanfanfiction/skillet/commit/5be16c9cfda2c308b406f8ff9f0d805e32b1ac4f))
+
 ## [0.31.1](https://github.com/mungbeanfanfiction/skillet/compare/v0.31.0...v0.31.1) (2026-07-09)
 
 ### Bug Fixes
