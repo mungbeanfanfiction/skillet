@@ -11,9 +11,9 @@ PR_LINE_LIMIT = 400
 
 def _oversize_diff(facts: dict) -> bool:
     """True when an owned, pre-PR worktree's diff exceeds the PR line limit.
-    Advisory only — does not affect classify(); a worktree that already has an
-    open PR is past this gate and is not flagged."""
-    if facts.get("has_open_pr"):
+    Advisory only — does not affect classify(); a worktree whose PR is already
+    open or merged is past this gate and is not flagged."""
+    if facts.get("has_open_pr") or facts.get("pr_merged"):
         return False
     return facts.get("diff_changed_lines", 0) > PR_LINE_LIMIT
 
@@ -39,6 +39,11 @@ def assemble(*, worktree_facts: list, eligible_issues: list) -> dict:
         # guessing (drift vs restart-cap vs done-no-PR).
         if st is WorktreeState.BLOCKED:
             entry["blocked_reason"] = state_mod.blocked_reason(w["facts"])
+        # A merged PR is terminal: the work shipped and the worktree is dead
+        # weight. Mark it so the report can hand it to /cleanup-worktrees rather
+        # than restart it or escalate it to a human.
+        if st is WorktreeState.MERGED:
+            entry["cleanup_candidate"] = True
         # Flag owned worktrees whose pre-PR diff has outgrown the 400-line cap so
         # the supervisor can prompt a split before they reach open-pr (which would
         # hard-block them). Foreign worktrees are never flagged.

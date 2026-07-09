@@ -37,11 +37,20 @@ this cycle (reschedule). Never act on partial data.
 - `needs-input` → leave alone (the sweeper owns it; never restart).
 - `pr-open` → leave the merge/review decision to the human, but watch it for
   follow-up work in step 3a.
+- `merged` → terminal: the branch's PR shipped and its session has exited. Never
+  restart it, never report it as blocked. Its survey entry carries
+  `cleanup_candidate: true` — surface it as a `/cleanup-worktrees` candidate in the
+  step-5 report. Because merged state is read from GitHub, it outranks every local
+  `task.md` marker, so a stale `done`/`pickup` marker or a spent restart budget can
+  never make shipped work look `stalled` or `blocked`. A merged branch that still
+  has a live session, a pending `question.md`, or an open follow-up PR reports as
+  `working` / `needs-input` / `pr-open` instead — it is not yet safe to clean up.
 - `blocked` → report with its `blocked_reason`; do not touch. The reason tells you
   what happened: `task_md_missing` (registry points at a worktree whose task.md is
   gone — likely registry/disk drift, worth investigating), `restart_cap` (hit the
   restart budget — a real repeated failure for a human), `done_no_pr` (session
-  marked done but never opened a PR — needs a human).
+  marked done but never opened a PR at all — needs a human; a session whose PR
+  merged reports `merged`, so this reason never means "shipped").
 - `working` → leave alone.
 NEVER touch worktrees with `"owned": false` (state `foreign`) — list them in the
 report's FYI, nothing more.
@@ -127,8 +136,12 @@ acted: restarted #12 #34 · dispatched #56 #78 · groomed #90→epic (+3 sub-iss
 pr-watch: [#43](https://github.com/owner/name/pull/43) comment-dispatched · [#45](https://github.com/owner/name/pull/45) conflict-dispatched
 conflict-escalated: #45 — unclean, needs human (see question-sweeper)
 oversize: #56 (612 lines) — needs split
+merged: #47 #48 — safe to clean up
 blocked: #41 restart_cap
 ```
+Print the `merged` line for every worktree whose survey entry has
+`cleanup_candidate: true`. These are done, not stuck — run `/cleanup-worktrees`
+(see step 6's autonomy rules) rather than restarting or escalating them.
 Print the `conflict-escalated` line for every worktree whose survey entry has
 `conflict_escalated: true` — an unclean merge conflict `resolve-conflicts` could
 not safely auto-resolve. It also surfaces via the question-sweeper, but this line

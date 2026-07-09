@@ -54,8 +54,8 @@ def test_non_blocked_worktree_has_no_blocked_reason():
 
 def _facts(**over):
     base = {"process_alive": True, "has_question_md": False, "task_complete": False,
-            "has_open_pr": False, "restart_count": 0, "task_md_present": True,
-            "diff_changed_lines": 0}
+            "has_open_pr": False, "pr_merged": False, "restart_count": 0,
+            "task_md_present": True, "diff_changed_lines": 0}
     base.update(over)
     return base
 
@@ -94,6 +94,38 @@ def test_foreign_worktree_is_never_flagged_oversize():
     worktree_facts = [
         {"issue": None, "path": "/wt/foreign", "branch": "feat-x", "owned": False,
          "facts": _facts(diff_changed_lines=999)},
+    ]
+    result = survey.assemble(worktree_facts=worktree_facts, eligible_issues=[])
+    assert "oversize_diff" not in result["worktrees"][0]
+
+
+def test_merged_worktree_is_a_cleanup_candidate_and_frees_its_slot():
+    worktree_facts = [
+        {"issue": 47, "path": "/wt/47", "branch": "auto-47", "owned": True,
+         "facts": _facts(pr_merged=True, process_alive=False, restart_count=2)},
+    ]
+    result = survey.assemble(worktree_facts=worktree_facts, eligible_issues=[])
+    w = result["worktrees"][0]
+    assert w["state"] == S.MERGED.value
+    assert w["cleanup_candidate"] is True
+    assert "blocked_reason" not in w
+    assert result["free_slots"] == 3
+
+
+def test_non_merged_worktree_is_not_a_cleanup_candidate():
+    worktree_facts = [
+        {"issue": 48, "path": "/wt/48", "branch": "auto-48", "owned": True,
+         "facts": _facts()},
+    ]
+    result = survey.assemble(worktree_facts=worktree_facts, eligible_issues=[])
+    assert "cleanup_candidate" not in result["worktrees"][0]
+
+
+def test_merged_worktree_is_not_flagged_oversize():
+    # it already shipped; a "needs split" nag on merged work is noise
+    worktree_facts = [
+        {"issue": 49, "path": "/wt/49", "branch": "auto-49", "owned": True,
+         "facts": _facts(pr_merged=True, diff_changed_lines=900)},
     ]
     result = survey.assemble(worktree_facts=worktree_facts, eligible_issues=[])
     assert "oversize_diff" not in result["worktrees"][0]

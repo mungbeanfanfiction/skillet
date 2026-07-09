@@ -42,6 +42,20 @@ while read -r path; do
     fi
   fi
   has_pr="$(echo "$OPEN_PR_BRANCHES" | jq --arg b "$branch" 'index($b) != null')"
+  # Merged state comes from GitHub, not from task.md, so a stale local marker
+  # can't fake it. Scoped to this branch (`--head`) rather than a repo-wide
+  # `--state all` page, whose 100-PR window would silently drop older merges.
+  # `--state merged` excludes closed-but-unmerged PRs on purpose: that work was
+  # abandoned or rejected, not shipped, so it keeps its ordinary classification.
+  # Any gh/jq failure leaves it false: a missed merge only costs one wasted
+  # restart, while a false positive would strand real work as `merged`.
+  pr_merged=false
+  if [ -n "$branch" ]; then
+    merged_count="$(gh pr list --repo "$REPO" --head "$branch" --state merged \
+      --limit 1 --json number 2>/dev/null | jq 'length' 2>/dev/null || echo 0)"
+    case "$merged_count" in (''|*[!0-9]*) merged_count=0 ;; esac
+    if [ "$merged_count" -gt 0 ]; then pr_merged=true; fi
+  fi
   # Changed lines vs base (added + deleted) — the metric open-pr caps at 400.
   # Exclude lockfiles/generated files; any git failure → 0 so survey never aborts.
   # `|| echo 0`: an unresolvable origin/<base> (fresh/unfetched worktree) makes git
@@ -56,10 +70,12 @@ while read -r path; do
     --argjson complete "$task_complete" --argjson haspr "$has_pr" \
     --argjson restart "$restart" --argjson present "$task_present" \
     --argjson difflines "$diff_lines" --argjson escalated "$conflict_escalated" \
+    --argjson prmerged "$pr_merged" \
     '. += [{path:$path, branch:$branch, facts:{
         process_alive:$alive, has_question_md:$hasq, task_complete:$complete,
-        has_open_pr:$haspr, restart_count:$restart, task_md_present:$present,
-        diff_changed_lines:$difflines, conflict_escalated:$escalated}}]')"
+        has_open_pr:$haspr, pr_merged:$prmerged, restart_count:$restart,
+        task_md_present:$present, diff_changed_lines:$difflines,
+        conflict_escalated:$escalated}}]')"
 done < <(git worktree list --porcelain | awk '/^worktree /{print $2}')
 
 # Derive ownership + issue from the registry here (paths passed as argv, never
