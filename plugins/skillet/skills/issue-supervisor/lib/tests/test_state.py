@@ -2,10 +2,15 @@ from supervisorlib import state
 from supervisorlib.state import WorktreeState
 
 
+FRESH = 60
+COLD = state.STALE_HEARTBEAT_SECONDS + 1
+
+
 def make(**kw):
     base = dict(
         process_alive=False, has_question_md=False, task_complete=False,
         has_open_pr=False, pr_merged=False, restart_count=0, task_md_present=True,
+        heartbeat_age_seconds=None,
     )
     base.update(kw)
     return base
@@ -81,6 +86,14 @@ def test_live_session_on_merged_branch_stays_working():
     assert state.is_in_flight(state.classify(facts)) is True
 
 
+def test_wedged_session_on_merged_branch_is_merged_not_working():
+    # A live session is exempt from MERGED (it may be prepping a follow-up PR), but a
+    # cold heartbeat means wedged — it must not hold a slot on an already-shipped branch.
+    facts = make(pr_merged=True, process_alive=True, heartbeat_age_seconds=COLD)
+    assert state.classify(facts) == WorktreeState.MERGED
+    assert state.is_in_flight(state.classify(facts)) is False
+
+
 def test_live_session_on_merged_branch_never_reports_blocked():
     # a live session is exempt from MERGED, but must not therefore fall through to
     # the blocking rungs — that was the original bug, just with process_alive set.
@@ -110,6 +123,31 @@ def test_in_flight_only_for_working_and_stalled():
     assert state.is_in_flight(WorktreeState.PR_OPEN) is False
     assert state.is_in_flight(WorktreeState.MERGED) is False
     assert state.is_in_flight(WorktreeState.BLOCKED) is False
+
+
+def test_live_session_with_cold_heartbeat_is_stalled():
+    # kill -0 says alive; no tool call in 45min says wedged. Stalled frees the slot.
+    assert state.classify(make(process_alive=True, heartbeat_age_seconds=COLD)) == WorktreeState.STALLED
+    assert state.classify(make(process_alive=True, heartbeat_age_seconds=FRESH)) == WorktreeState.WORKING
+
+
+def test_is_stale_needs_a_live_pid_and_a_heartbeat_past_the_threshold():
+    # None = no evidence (pre-hook worktree, or died before its first tool call);
+    # a dead PID is already STALLED; the boundary itself is not yet stale.
+    assert state.is_stale(make(process_alive=True, heartbeat_age_seconds=None)) is False
+    assert state.classify(make(process_alive=True, heartbeat_age_seconds=None)) == WorktreeState.WORKING
+    assert state.is_stale(make(process_alive=False, heartbeat_age_seconds=COLD)) is False
+    assert state.is_stale(make(process_alive=True,
+                               heartbeat_age_seconds=state.STALE_HEARTBEAT_SECONDS)) is False
+
+
+def test_cold_heartbeat_does_not_override_question_pr_or_restart_cap():
+    cold = dict(process_alive=True, heartbeat_age_seconds=COLD)
+    assert state.classify(make(has_question_md=True, **cold)) == WorktreeState.NEEDS_INPUT
+    assert state.classify(make(has_open_pr=True, **cold)) == WorktreeState.PR_OPEN
+    capped = make(restart_count=2, **cold)  # must not be restarted forever
+    assert state.classify(capped) == WorktreeState.BLOCKED
+    assert state.blocked_reason(capped) == "restart_cap"
 
 
 def test_blocked_reason_none_when_not_blocked():

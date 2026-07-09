@@ -33,7 +33,9 @@ Run `scripts/survey.sh`. If it returns `{"error": ...}`, report the error and ST
 this cycle (reschedule). Never act on partial data.
 
 ## 3. Act on owned worktrees (from survey JSON)
-- `stalled` → run `scripts/restart.sh <path> <issue>`.
+- `stalled` → run `scripts/restart.sh <path> <issue>`. Covers both an exited session
+  and a **hung** one (see "Heartbeats" below); `restart.sh` reaps a live-but-wedged
+  PID before respawning.
 - `needs-input` → leave alone (the sweeper owns it; never restart).
 - `pr-open` → leave the merge/review decision to the human, but watch it for
   follow-up work in step 3a.
@@ -64,6 +66,24 @@ session split the work into smaller, logically focused PRs. Do NOT restart or
 otherwise touch the worktree on this flag alone — it is advisory and independent
 of the state classification; a `working` session may already be planning the
 split (every dispatch carries the ≤400-line constraint, see step 4).
+
+**Heartbeats (stale-session detection).** `kill -0` on `session.pid` proves a process
+exists, not that it is progressing — a wedged session would otherwise report `working`
+forever and hold one of the 3 slots. So skillet's `PostToolUse` hook
+(`hooks/heartbeat.sh`) rewrites `<wt>/.claude/status/HEARTBEAT.md` on **every tool
+call**, and again on `SessionEnd` with the exit reason; a dying agent cannot be trusted
+to narrate its own death, so the hook writes it, not the model. The survey reads that
+file's mtime into `heartbeat_age_seconds`; when a live PID's heartbeat exceeds
+`STALE_HEARTBEAT_SECONDS` (45 min — generous enough for a long CI run or a
+code-reviewer subagent), `classify()` demotes it to `stalled`, routing it to
+`restart.sh` (which reaps the wedged PID, guarding against PID reuse) under the usual
+restart cap. Such entries carry `stale_heartbeat: true` + `heartbeat_age_seconds`;
+every `stalled` entry carries `last_step` / `exit_reason`. A **missing** heartbeat is
+never stale.
+
+This only concerns `working`/`stalled`. A **stalled-but-alive PR** — waiting on CI,
+review, a conflict, or a parked question — is `pr-open` or `needs-input`, neither
+in-flight, so it never consumed a slot, is never flagged stale, and is never killed.
 
 ## 3a. Watch open PRs (comments + conflicts)
 Run `scripts/pr-watch.sh`. For every OWNED worktree whose branch has an open PR,
@@ -139,6 +159,7 @@ survey: N working, M stalled, K needs-input, J pr-open  (P foreign) · slots F/C
 acted: restarted #12 #34 · dispatched #56 #78 · groomed #90→epic (+3 sub-issues)
 pr-watch: [#43](https://github.com/owner/name/pull/43) comment-dispatched · [#45](https://github.com/owner/name/pull/45) conflict-dispatched
 conflict-escalated: #45 — unclean, needs human (see question-sweeper)
+stale: #52 — no heartbeat for 61m, last step: Bash (stage: ci) — restarted
 oversize: #56 (612 lines) — needs split
 merged: #47 #48 — safe to clean up
 blocked: #41 restart_cap
@@ -149,6 +170,7 @@ Print the `merged` line for every worktree whose survey entry has
 `cleanup_candidate: true`. These are done, not stuck — run `/cleanup-worktrees`
 (see step 6's autonomy rules) rather than restarting or escalating them.
 
+Print the `stale` line for every entry with `stale_heartbeat: true`.
 Print the `conflict-escalated` line for every worktree whose survey entry has
 `conflict_escalated: true` — an unclean merge conflict `resolve-conflicts` could
 not safely auto-resolve. It also surfaces via the question-sweeper, but this line

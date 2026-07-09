@@ -68,4 +68,28 @@ resolve_claude() {
   fail "claude executable not found (set CLAUDE_BIN or install the CLI)"
 }
 
+# Epoch mtime of $1. GNU form FIRST: GNU `stat -f` means "filesystem status" and
+# prints an info block to STDOUT before exiting 1, so a BSD-first chain would have `||`
+# append the real mtime to that garbage. BSD `stat -c` fails cleanly, so only this
+# order works on both. Same idea below: BSD `date -j` fails cleanly on GNU.
+file_mtime() { stat -c %Y "$1" 2>/dev/null || stat -f %m "$1" 2>/dev/null; }
+
+pid_started() {
+  local raw
+  raw="$(ps -o lstart= -p "$1" 2>/dev/null)" || return 1
+  [ -n "$raw" ] || return 1
+  date -j -f '%a %b %e %T %Y' "$raw" +%s 2>/dev/null || date -d "$raw" +%s 2>/dev/null
+}
+
+# True when live pid $1 started no later than $2's mtime, i.e. it plausibly wrote that
+# file. Guards `kill` against PID reuse: a recycled PID necessarily started AFTER the
+# pid file was written. Fails closed on any unreadable timestamp.
+pid_predates_file() {
+  local started mtime
+  started="$(pid_started "$1")" || return 1
+  mtime="$(file_mtime "$2")" || return 1
+  case "$started$mtime" in (*[!0-9]*|'') return 1 ;; esac
+  [ -n "$started" ] && [ "$started" -le "$mtime" ]
+}
+
 mkdir -p "$STATE_DIR"

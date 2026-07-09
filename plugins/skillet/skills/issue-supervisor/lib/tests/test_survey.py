@@ -58,7 +58,8 @@ def test_non_blocked_worktree_has_no_blocked_reason():
 def _facts(**over):
     base = {"process_alive": True, "has_question_md": False, "task_complete": False,
             "has_open_pr": False, "pr_merged": False, "restart_count": 0,
-            "task_md_present": True, "diff_changed_lines": 0}
+            "task_md_present": True, "diff_changed_lines": 0,
+            "heartbeat_age_seconds": None}
     base.update(over)
     return base
 
@@ -164,6 +165,51 @@ def test_foreign_worktree_is_never_flagged_escalated():
     ]
     result = survey.assemble(worktree_facts=worktree_facts, eligible_issues=[])
     assert "conflict_escalated" not in result["worktrees"][0]
+
+
+COLD = 61 * 60
+
+
+def test_stale_live_session_is_flagged_and_frees_its_slot():
+    worktree_facts = [
+        {"issue": 13, "path": "/wt/13", "branch": "auto-13", "owned": True,
+         "facts": _facts(process_alive=True, heartbeat_age_seconds=COLD,
+                         last_step="Bash (stage: ci)", exit_reason=None)},
+    ]
+    result = survey.assemble(worktree_facts=worktree_facts, eligible_issues=[])
+    w = result["worktrees"][0]
+    assert w["state"] == S.STALLED.value
+    assert w["stale_heartbeat"] is True
+    assert w["heartbeat_age_seconds"] == COLD
+    assert w["last_step"] == "Bash (stage: ci)"
+    # STALLED is still in-flight (it gets restarted), so the slot count is unchanged.
+    assert result["free_slots"] == 2
+
+
+def test_stale_flag_only_on_stalled_never_on_working_or_pr_open():
+    # A `pr-open` worktree waiting on CI makes no tool calls, so its heartbeat goes
+    # cold while it is perfectly healthy — it must not be reported as a dead session.
+    for facts in (_facts(process_alive=True, heartbeat_age_seconds=30),
+                  _facts(process_alive=True, heartbeat_age_seconds=COLD, has_open_pr=True),
+                  _facts(process_alive=True, heartbeat_age_seconds=COLD, has_question_md=True)):
+        w = survey.assemble(worktree_facts=[
+            {"issue": 14, "path": "/wt/14", "branch": "auto-14", "owned": True, "facts": facts},
+        ], eligible_issues=[])["worktrees"][0]
+        assert "stale_heartbeat" not in w
+        assert "last_step" not in w
+
+
+def test_dead_session_reports_last_step_and_exit_reason_without_stale_flag():
+    worktree_facts = [
+        {"issue": 15, "path": "/wt/15", "branch": "auto-15", "owned": True,
+         "facts": _facts(process_alive=False, heartbeat_age_seconds=COLD,
+                         last_step="Edit (stage: work)", exit_reason="other")},
+    ]
+    w = survey.assemble(worktree_facts=worktree_facts, eligible_issues=[])["worktrees"][0]
+    assert w["state"] == S.STALLED.value
+    assert "stale_heartbeat" not in w  # it exited; it didn't hang
+    assert w["last_step"] == "Edit (stage: work)"
+    assert w["exit_reason"] == "other"
 
 
 def test_foreign_worktrees_get_foreign_state_not_blocked():
