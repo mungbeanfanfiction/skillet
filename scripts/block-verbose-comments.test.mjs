@@ -269,6 +269,17 @@ test("survives a huge code-first write (header scan exits on line 1)", () => {
   assert.equal(stdout, "");
 });
 
+test("tolerates a relative filename that starts with a dash", () => {
+  // Unguarded, `basename "-rf.py"` parses the name as options and fails, which
+  // `pipefail` + `set -e` turn into a hook-killing exit. Both a header that
+  // would flag and plain code with no comments must survive.
+  const flagged = runHook({ file_path: "-rf.py", content: "# What this is.\n# More of what.\nx = 1" });
+  assert.equal(flagged.decision, "ask");
+
+  const bare = runHook({ file_path: "--help.py", content: "x = 1" });
+  assert.equal(bare.stdout, "");
+});
+
 test("tolerates CRLF line endings", () => {
   const { decision } = runHook({
     file_path: "auth.py",

@@ -149,7 +149,8 @@ if [ "${SKILLET_ALLOW_FILE_HEADERS:-0}" != "1" ]; then
     # Does the opening line just echo the filename? ("foo_bar.py" → "foo bar")
     # Match on word boundaries so a stem of "auth" does not match inside the
     # word "authentication" — that is prose about the file, not a restatement.
-    stem=$(basename "$target" | sed -E 's/\.[^.]+$//; s/[-_]+/ /g')
+    # `--` so a relative path like "-rf.py" is not parsed as basename's options.
+    stem=$(basename -- "$target" | sed -E 's/\.[^.]+$//; s/[-_]+/ /g')
     # Escape regex metacharacters — a filename may legally contain them.
     stem_re=$(printf '%s' "$stem" | sed -E 's/[][\\.^$*+?(){}|]/\\&/g')
     first_line=$(grep -m1 -E '[^[:space:]]' <<<"$header" || true)
