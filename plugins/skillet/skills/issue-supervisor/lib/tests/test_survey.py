@@ -19,7 +19,30 @@ def test_assemble_produces_states_and_free_slots():
     assert by_issue[2]["state"] == S.NEEDS_INPUT.value
     assert result["free_slots"] == 2
     assert result["slot_cap"] == 3
+    # No stalled worktree here, so the refill-path count matches free_slots.
+    assert result["refill_slots"] == 2
     assert result["eligible_issues"] == [7]
+
+
+def test_stalled_consumes_free_slots_but_not_refill_slots():
+    # A stalled worktree still holds its slot in the full cycle (free_slots),
+    # because §3 restarts it before §4 refills. The event-driven refill path skips
+    # §3, so refill_slots frees the stalled worktree's slot for new work.
+    worktree_facts = [
+        {"issue": 1, "path": "/wt/1", "branch": "auto-1", "owned": True,
+         "facts": {"process_alive": True, "has_question_md": False, "task_complete": False,
+                   "has_open_pr": False, "restart_count": 0, "task_md_present": True}},
+        {"issue": 2, "path": "/wt/2", "branch": "auto-2", "owned": True,
+         "facts": {"process_alive": False, "has_question_md": False, "task_complete": False,
+                   "has_open_pr": False, "restart_count": 0, "task_md_present": True}},
+    ]
+    # Pin the cap: the default is host-derived, so a bare call would make the
+    # free_slots assertion depend on the machine running the suite.
+    result = survey.assemble(worktree_facts=worktree_facts, eligible_issues=[], cap=3)
+    by_issue = {w["issue"]: w for w in result["worktrees"]}
+    assert by_issue[2]["state"] == S.STALLED.value
+    assert result["free_slots"] == 1
+    assert result["refill_slots"] == 2
 
 
 def test_foreign_worktrees_never_consume_a_slot():
