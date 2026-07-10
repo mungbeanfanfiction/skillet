@@ -82,11 +82,16 @@ def test_reaper_guards_against_pid_reuse():
 
 def test_reuse_guard_rechecked_before_delayed_sigkill():
     # The TERM→KILL grace is a PID/PGID-reuse window: a pid/group recycled during the grace
-    # must not be SIGKILLed. reap_pid re-validates provenance right before the delayed KILL.
+    # must not be SIGKILLed. reap_pid re-validates provenance right before the delayed KILL,
+    # with the SAME predicate the target was chosen by (group-inclusive for a group target,
+    # pid-only for a bare target — a group-inclusive recheck on a bare target would defeat
+    # the reuse guard on an unrelated recycled pgid).
     body = COMMON[COMMON.index("reap_pid()"):]
     kill_idx = body.index("kill -KILL")
-    # the provenance recheck must appear BETWEEN the grace loop and the SIGKILL
-    assert "_reap_provenance_ok" in body[:kill_idx]
+    recheck = body[:kill_idx]
+    assert "_group_provenance_ok" in recheck        # group target re-runs group provenance
+    assert "pid_predates_file" in recheck           # bare target re-runs pid-only provenance
+    assert 'if [ -n "$grouped" ]' in recheck        # recheck branches on which target was picked
 
 
 def test_restart_uses_a_short_synchronous_grace():
@@ -99,10 +104,22 @@ def test_restart_uses_a_short_synchronous_grace():
 def test_restart_only_logs_reap_when_something_was_alive():
     # reap_pid always returns 0 (even for a dead/recycled pid), so gating the "reaped" log on
     # its exit status would print on every ordinary exited-session restart. restart.sh must
-    # check liveness up front and only log a real reap.
+    # check liveness up front — AND provenance, so a recycled-but-live stranger pid doesn't
+    # log a phantom reap — mirroring exactly what reap_pid acts on.
     src = (SCRIPTS / "restart.sh").read_text()
     assert "WAS_ALIVE" in src
     assert 'reap_pid "$OLD_PID" "$PID_FILE" && ' not in src  # the misleading gate must be gone
+    # liveness alone isn't enough; the log guard must also confirm provenance
+    assert "_group_provenance_ok" in src
+    assert "pid_predates_file" in src
+
+
+def test_reap_pid_grace_loop_is_zero_safe():
+    # The grace is caller-tunable via ${3:-30}; `seq 1 0` emits "1 0" (2 iterations), so the
+    # loop must be a numeric while, not a seq expansion, to honor grace=0 (immediate KILL).
+    body = COMMON[COMMON.index("reap_pid()"):]
+    assert 'seq 1 "$grace"' not in body
+    assert 'while [ "$i" -lt "$grace" ]' in body
 
 
 def test_disabled_cap_skips_the_reaper():

@@ -136,14 +136,17 @@ spawn_capped_session() {
     while [ "$waited" -lt "$cap" ]; do
       [ $((cap - waited)) -lt "$step" ] && step=$((cap - waited))
       sleep "$step"; waited=$((waited + step))
-      cur="$(cat "$pidfile" 2>/dev/null || true)"
+      read -r cur < "$pidfile" 2>/dev/null || cur=       # `read` builtin, no per-tick fork
       [ "$cur" = "$pid" ] || exit 0               # respawn overwrote the pidfile → not our job
       # Exit early only when the whole TREE is gone (leader AND any xdist children). Checking
       # the group, not the bare leader pid, is deliberate: claude can exit while a runaway
       # worker keeps burning CPU in the group — that must still hit the cap, not slip out here.
       kill -0 -- "-$pid" 2>/dev/null || kill -0 "$pid" 2>/dev/null || exit 0
     done
-    reap_pid "$pid" "$pidfile"                     # outlived the cap → reap the tree
+    # Reap only if the pidfile STILL names us — a respawn racing the cap boundary must not be
+    # reaped (reap_pid's own provenance guard also covers this; this is the cheap belt).
+    read -r cur < "$pidfile" 2>/dev/null || cur=
+    [ "$cur" = "$pid" ] && reap_pid "$pid" "$pidfile"   # outlived the cap → reap the tree
   ) >/dev/null 2>&1 &
   disown 2>/dev/null || true
 }
@@ -214,29 +217,36 @@ group_predates_file() {
 # validates a surviving group member instead. Provenance is re-checked before the delayed
 # SIGKILL (the grace is a reuse window). Best-effort: every kill is `|| true`.
 reap_pid() {
-  local pid="$1" pidfile="$2" grace="${3:-30}" i target sig
+  local pid="$1" pidfile="$2" grace="${3:-30}" i target grouped=
   case "$pid" in (''|*[!0-9]*) return 0 ;; esac
 
   # One escalation, two possible targets. Prefer the whole GROUP (`-$pid`) when it's live
-  # and ours; else fall back to the bare pid for a legacy pre-`set -m` session. Collapsing
-  # the two into a single `target` keeps the TERM→grace→KILL logic in one place.
-  if kill -0 -- "-$pid" 2>/dev/null && _reap_provenance_ok "$pid" "$pidfile"; then
-    target="-$pid"                                   # signal the process group
+  # and ours (provenance may come from a surviving member if the leader already exited);
+  # else fall back to the bare pid for a legacy pre-`set -m` session, whose provenance is
+  # the LIVE leader only. `grouped` records which so the pre-KILL recheck re-runs the SAME
+  # predicate the target was chosen with — a group-inclusive recheck on a bare target could
+  # pass on an unrelated recycled pgid, defeating the reuse guard.
+  if kill -0 -- "-$pid" 2>/dev/null && _group_provenance_ok "$pid" "$pidfile"; then
+    target="-$pid"; grouped=1                         # signal the process group
   elif kill -0 "$pid" 2>/dev/null && pid_predates_file "$pid" "$pidfile"; then
-    target="$pid"                                    # legacy: bare-pid, live leader only
+    target="$pid"                                     # legacy: bare-pid, live leader only
   else
-    return 0                                         # nothing ours to reap
+    return 0                                          # nothing ours to reap
   fi
 
   kill -TERM -- "$target" 2>/dev/null || true
-  for i in $(seq 1 "$grace"); do kill -0 -- "$target" 2>/dev/null || return 0; sleep 1; done
-  # Re-validate before the delayed KILL: a pid/pgid recycled during the grace must be spared.
-  _reap_provenance_ok "$pid" "$pidfile" || return 0
+  # Numeric while-loop, not a seq expansion: seq counting 1..0 emits "1 0" (2 iterations),
+  # so a caller passing grace=0 (meaning immediate KILL, no wait) would get a 2s grace.
+  i=0; while [ "$i" -lt "$grace" ]; do kill -0 -- "$target" 2>/dev/null || return 0; sleep 1; i=$((i+1)); done
+  # Re-validate before the delayed KILL — the grace is a reuse window — with the SAME
+  # predicate as entry: group provenance for a group target, pid-only for a bare target.
+  if [ -n "$grouped" ]; then _group_provenance_ok "$pid" "$pidfile" || return 0
+  else pid_predates_file "$pid" "$pidfile" || return 0; fi
   kill -KILL -- "$target" 2>/dev/null || true
 }
 
-# Provenance for reap_pid: the pid predates the pidfile (live leader) OR a surviving group
-# member does (leader already exited). Either proves this pid/group is the original session.
-_reap_provenance_ok() { pid_predates_file "$1" "$2" || group_predates_file "$1" "$2"; }
+# Group-target provenance for reap_pid: the (possibly dead) leader pid predates the pidfile,
+# OR a surviving group member does. Either proves this GROUP is the original session's.
+_group_provenance_ok() { pid_predates_file "$1" "$2" || group_predates_file "$1" "$2"; }
 
 mkdir -p "$STATE_DIR"
