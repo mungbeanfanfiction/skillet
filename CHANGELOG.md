@@ -1,3 +1,9 @@
+## [0.32.1](https://github.com/mungbeanfanfiction/skillet/compare/v0.32.0...v0.32.1) (2026-07-10)
+
+### Bug Fixes
+
+* **issue-supervisor:** stop dispatched sessions from pegging the CPU ([#88](https://github.com/mungbeanfanfiction/skillet/issues/88)) ([ea7b2cb](https://github.com/mungbeanfanfiction/skillet/commit/ea7b2cbf4e1f4af89d73a0c6ec30c5fa9edf7e0a))
+
 ## [0.32.0](https://github.com/mungbeanfanfiction/skillet/compare/v0.31.1...v0.32.0) (2026-07-09)
 
 ### Features
