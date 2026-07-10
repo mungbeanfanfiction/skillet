@@ -51,6 +51,27 @@ def test_dispatch_prompt_tells_sessions_to_put_imports_at_file_tops():
     assert "circular" in spawn.resume_prompt(issue=1).lower()
 
 
+def test_ci_step_prefers_agent_ci_before_plain_ci():
+    # A repo's `agent-ci`/`agent-test` target is the lighter, quieter CI path meant
+    # for automated runs; the session must try it BEFORE the heavier `make ci`, which
+    # often shells out to a full-core `pytest -n auto` and helps peg the machine.
+    p = spawn.dispatch_prompt(issue=1)
+    assert "make agent-ci" in p
+    assert p.index("make agent-ci") < p.index("make ci")
+
+
+def test_ci_step_caps_fix_and_rerun_at_3_rounds():
+    # An un-greenable suite must not re-run forever: the CI stage caps fixing at 3
+    # rounds (like the review stage) then stops and reports, rather than looping the
+    # full — often multi-worker — test run without bound and burning CPU.
+    p = spawn.dispatch_prompt(issue=1)
+    ci = p[p.index("5. ci"):p.index("6.")]
+    assert "3 rounds" in ci
+    low = ci.lower()
+    assert "stop" in low
+    assert "do not open a pr" in low
+
+
 def test_dispatch_prompt_routes_explore_issues_to_explore_skill():
     # routing preamble ships in every prompt so `explore`-labeled tasks divert to /explore-issue.
     p = spawn.dispatch_prompt(issue=489)

@@ -65,10 +65,16 @@ Run this pipeline for the task, logging each completed stage to the
    Exit when a round returns no high/medium findings, or after 3 rounds. If it is
    still not clean after 3 rounds, stop and summarize the outstanding findings in
    the progress log — do NOT open a PR.
-5. ci — detect and run the repo's check command (try in order: `make ci`,
-   `make agent-ci`, `npm test`/`npm run test`, `pytest`, or a check documented in
-   CLAUDE.md/README; if none, record "no check command found" and proceed). It
-   must pass; fix and re-run, or stop and report if un-greenable.
+5. ci — detect and run the repo's check command. PREFER an agent/CI-tuned target
+   when one exists — try in order: `make agent-ci`, `make ci`, `npm test`/`npm run
+   test`, `pytest`, or a check documented in CLAUDE.md/README; if none, record "no
+   check command found" and proceed. (`agent-ci` first because repos often provide a
+   lighter, quieter CI target meant for automated runs; falling through to the
+   heavier default only when it is absent.) It must pass — but cap fixing at
+   3 rounds, exactly like the review stage: run CI, fix the failures, re-run; after
+   3 rounds still red, STOP and summarize the outstanding failures in the progress log
+   — do NOT open a PR, and do NOT keep re-running (an un-greenable suite re-run
+   without bound just burns the machine).
 6. open a DRAFT PR with the `open-pr` skill, then write `done` under
    `## Pipeline stage`.
 7. notify — as the LAST step, signal the supervisor that this slot is now free so

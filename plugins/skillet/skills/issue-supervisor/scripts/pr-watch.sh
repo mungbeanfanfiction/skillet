@@ -115,9 +115,10 @@ print(spawn.pr_address_prompt(issue=sys.argv[2], pr=sys.argv[3], reasons=sys.arg
 PY
 )"
 
-  CLAUDE="$(resolve_claude)"
-  ( cd "$WT" && nohup "$CLAUDE" -p "$PROMPT" --permission-mode acceptEdits --add-dir "$WT" \
-      > "$WT/.claude/session.log" 2>&1 & echo $! > "$WT/.claude/session.pid" )
+  # Route through spawn_capped_session (in a subshell so the `cd` doesn't leak) so this
+  # PR-address session gets the same wall-clock cap + process-group reaper as dispatch/
+  # restart/resume — a raw inline spawn here would be an uncapped 4th session path.
+  ( cd "$WT" && spawn_capped_session "$WT" "$PROMPT" )
 
   # Advance the checkpoint ONLY for the signals we just dispatched on (the
   # decision already computed it that way), so a deferred signal is retried.

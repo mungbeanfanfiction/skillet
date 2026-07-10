@@ -17,20 +17,33 @@ WT="$1"; ISSUE="$2"; TASK="$WT/.claude/task.md"
 PID_FILE="$WT/.claude/session.pid"
 if [ -f "$PID_FILE" ]; then
   OLD_PID="$(cat "$PID_FILE" 2>/dev/null || true)"
+  # reap_pid signals the whole process GROUP (not just the bare pid), so the hung session's
+  # CI child + xdist workers die with it — killing only OLD_PID would orphan exactly the
+  # runaway children this reap exists to stop. It also guards against PID reuse (the survey
+  # ran earlier, so OLD_PID may have exited and the OS recycled it) via pid_predates_file,
+  # and no-ops on a non-numeric/dead/recycled pid. Shared with spawn_capped_session's
+  # wall-clock reaper so the two reap paths stay identical.
+  # Only log a reap when OUR session was actually alive to kill — reap_pid always returns 0
+  # (even for a dead/recycled/empty pid), so gating the message on its exit status would
+  # print "reaped" on every ordinary exited-session restart. Mirror exactly what reap_pid
+  # acts on: alive (group or bare) AND provenance holds — a bare `kill -0` alone would count
+  # a recycled-but-live stranger pid as ours and log a phantom reap.
+  WAS_ALIVE=false
   case "$OLD_PID" in
     ''|*[!0-9]*) : ;;
     *)
-      # Never signal a bare PID: the survey ran earlier, so the session may have exited
-      # and the OS recycled its PID. (Matching the worktree path in argv fails — `ps`
-      # truncates at 3072 bytes, past where `--add-dir` lands behind the ~4KB prompt.)
-      if kill -0 "$OLD_PID" 2>/dev/null && pid_predates_file "$OLD_PID" "$PID_FILE"; then
-        kill -TERM "$OLD_PID" 2>/dev/null || true
-        for _ in 1 2 3 4 5; do kill -0 "$OLD_PID" 2>/dev/null || break; sleep 1; done
-        kill -KILL "$OLD_PID" 2>/dev/null || true
-        echo "reaped hung session pid $OLD_PID at $WT"
+      if kill -0 -- "-$OLD_PID" 2>/dev/null && _group_provenance_ok "$OLD_PID" "$PID_FILE"; then
+        WAS_ALIVE=true
+      elif kill -0 "$OLD_PID" 2>/dev/null && pid_predates_file "$OLD_PID" "$PID_FILE"; then
+        WAS_ALIVE=true
       fi
       ;;
   esac
+  # Short grace: restart.sh runs SYNCHRONOUSLY on the survey's critical path, so a 5s
+  # TERM→KILL window (matching the old reap) avoids stalling the cycle up to 30s per hung
+  # worktree. The detached wall-clock reaper keeps the longer default grace.
+  reap_pid "$OLD_PID" "$PID_FILE" 5
+  [ "$WAS_ALIVE" = true ] && echo "reaped hung session pid $OLD_PID at $WT"
 fi
 
 # Drop the cold heartbeat, else a survey landing before the respawn's first tool call
@@ -54,9 +67,6 @@ from supervisorlib import spawn
 print(spawn.restart_prompt(issue=sys.argv[2]))
 PY
 )"
-CLAUDE="$(resolve_claude)"
 cd "$WT"
-nohup "$CLAUDE" -p "$PROMPT" --permission-mode acceptEdits --add-dir "$WT" \
-  > "$WT/.claude/session.log" 2>&1 &
-echo $! > "$WT/.claude/session.pid"
+spawn_capped_session "$WT" "$PROMPT"   # detached, under the per-session wall-clock cap
 echo "restarted #$ISSUE → $WT (restart #$NEW, pid $(cat "$WT/.claude/session.pid"))"
