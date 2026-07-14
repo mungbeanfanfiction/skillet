@@ -72,6 +72,20 @@ test("flags comment-heavy edits (>50% comment lines)", () => {
   assert.match(reason, /Comment-heavy/);
 });
 
+test("does not flag an edit that is exactly 50% comments", () => {
+  // 4 comment lines of 8 non-blank is exactly 50% — the smell is *>50%*, so the
+  // boundary must not trip heuristic 3. A code line leads so heuristic 4 (top-of-
+  // file header) stays out of it, and the comments are why-notes, not narration,
+  // leaving heuristic 3 as the only one in play.
+  const { stdout, decision } = runHook({
+    file_path: "a.ts",
+    new_string:
+      "const w=1;\n// guards a race\nconst x=2;\n// upstream rotates hourly\nconst y=3;\n// keep in sync w/ server\nconst z=4;\n// fallback is intentional",
+  });
+  assert.equal(stdout, "", "exactly 50% comments is not >50% — must not flag");
+  assert.equal(decision, null);
+});
+
 test("stays silent on clean why-comments", () => {
   const { stdout, decision } = runHook({
     file_path: "foo.js",

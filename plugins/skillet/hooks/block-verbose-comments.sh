@@ -76,7 +76,7 @@ fi
 # --- Heuristic 3: comment-heavy diff -----------------------------------------
 # Only meaningful on a reasonably sized edit. >50% comments by line is a smell.
 if [ "$total_nonblank" -ge 8 ] && [ "$comment_count" -gt 0 ]; then
-  if [ $(( comment_count * 100 )) -ge $(( total_nonblank * 50 )) ]; then
+  if [ $(( comment_count * 100 )) -gt $(( total_nonblank * 50 )) ]; then
     flagged+="Comment-heavy edit: $comment_count of $total_nonblank non-blank lines are comments (>50%)."$'\n'
   fi
 fi
