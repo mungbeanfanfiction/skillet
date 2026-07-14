@@ -255,9 +255,17 @@ it does not prompt inline — it queues the question for the sweeper
 ## Concurrency + host resources
 Every in-flight slot is a full headless `claude` session that fans out subagents
 and runs the target repo's tests/build, so a slot costs real CPU and RAM. On a
-large repo the old fixed cap of 3 could saturate a laptop. The cap is now derived
-from host capacity by `supervisorlib.capacity`:
+large repo the old fixed cap of 3 could saturate a laptop: a repo's CI often runs
+`pytest -n auto` (one worker per core), so 3 slots × one-worker-per-core meant
+~3× core count in concurrent test processes — a load that pegs the machine. Three
+independent knobs now bound this; all are env-var overridable, and the defaults are
+sized so peak concurrent test processes (`slot_cap × xdist_workers`) stays at or
+below core count on every common host shape (see
+`docs/superpowers/specs/2026-07-14-supervisor-host-saturation-verification.md` for
+the before/after evidence).
 
+**1. Slot cap — how many sessions run at once.** Derived from host capacity by
+`supervisorlib.capacity`:
 - **Default:** the scarcer of `cpus // 4` and `total_RAM_GiB // 6`, clamped to
   `[1, 3]`. A 16-core / 32 GiB desktop still gets 3; an 8-core / 8 GiB laptop
   gets 1. A host whose CPU count or RAM can't be read skips that budget rather
@@ -270,9 +278,31 @@ from host capacity by `supervisorlib.capacity`:
 The resolved cap ships in the survey JSON as `slot_cap`; `free_slots` is already
 counted against it. §4's refill loop and §5's digest line read those two fields.
 
-To run the supervisor gently on a busy machine, lower the cap rather than
+**2. Per-session test parallelism — how many cores ONE session's CI grabs.**
+`PYTEST_XDIST_AUTO_NUM_WORKERS` (default `3`) caps `pytest -n auto` per session, so
+a session's CI resolves to at most 3 workers instead of one-per-core. `common.sh`
+exports it before every `nohup claude` spawn, so the session and its CI child
+inherit it. Set it higher on a big host that wants faster per-session CI, lower to
+be gentler; an explicit value always wins over the default.
+
+**3. Per-session wall-clock reaper — the runaway backstop.**
+`SKILLET_SESSION_TIMEOUT_SECONDS` (default `3600` = 60 min) is a hard ceiling on a
+single dispatched spawn. The heartbeat-based stall reap only fires *during* a survey
+cycle; once the supervisor exits, a detached `nohup claude` session that hangs has
+nothing watching it. So `spawn_capped_session` arms a second detached timer that,
+after the cap, SIGTERMs (then SIGKILLs after a 30s grace) the session's whole
+**process group** — claude, its CI child, and any xdist workers — guarded against
+PID/PGID reuse. Real runs are ~6 min (explore) to ~50 min (implement), so 60 min
+sits above the legit worst case while still bounding a runaway far tighter than the
+old effectively-unbounded behavior. Operator-overridable for a heavier task; `0` or
+empty **disables** the timer (use `-`/empty, not a positive number, to turn it off).
+
+To run the supervisor gently on a busy machine, lower the **slot cap** rather than
 throttling individual sessions:
-`SKILLET_SUPERVISOR_MAX_SLOTS=1 claude ... /issue-supervisor`.
+`SKILLET_SUPERVISOR_MAX_SLOTS=1 claude ... /issue-supervisor`. This is the first
+lever for a hot host — it bounds the CPU multiplier at its source. Finer-grained
+scheduling-priority throttling (`nice`/`ionice`) is tracked under #91 (PR #96) and
+will add `SKILLET_SESSION_NICE` / `SKILLET_SESSION_IONICE_CLASS` knobs there.
 
 ## Hard rules
 No merge, no push to the base branch, only DRAFT PRs (those happen inside
