@@ -48,9 +48,11 @@ taken from the **thread**. Two consequences worth knowing:
 - The body shown is the opener's, not the latest reply. The resolved state is
   still authoritative for unaddressed-vs-handled, so you won't get false
   "handled" — but open the URL for the full conversation when a thread is long.
-- `--since` scopes threads by their **opening** comment's timestamp, so a fresh,
-  still-unresolved reply on an *old* thread can be filtered out by a `--since`
-  pass. Resolved state is unaffected; only the new-since-checkpoint filter is.
+- `--since` does **not** apply to inline threads — they de-dup by `isResolved`,
+  not by timestamp, so an unresolved thread is always surfaced regardless of the
+  checkpoint. (Only top-level PR comments and review summaries, which have no
+  resolve state, are scoped by `--since`.) This prevents an old-but-unresolved
+  thread from being silently filtered out by a checkpoint that has moved past it.
 
 ## When invoked
 
@@ -58,8 +60,9 @@ Parse the arguments:
 
 - **`<pr-number>`** (required) — the first bare integer.
 - **`--repo <owner/repo>`** — defaults to the current checkout's repo.
-- **`--since <ISO8601>`** — only consider comments created at or after this
-  timestamp (e.g. `2026-06-01T00:00:00Z`).
+- **`--since <ISO8601>`** — only consider top-level PR comments / review
+  summaries created at or after this timestamp (e.g. `2026-06-01T00:00:00Z`).
+  Inline review threads are exempt (de-duped by `isResolved`, not timestamp).
 - **`--json`** — print the raw JSON envelope instead of the formatted summary
   (for callers like `/issue-supervisor`).
 
@@ -119,6 +122,9 @@ If there are **no unaddressed comments**, say so plainly:
 ## Notes
 
 - **Read-only.** This skill never replies, resolves, or edits. It only reports.
-- **`--since` is the de-dup lever.** This skill is stateless; to avoid
-  re-surfacing the same comments across passes, a caller (e.g. the supervisor)
-  should record the last-checked timestamp per PR and pass it back as `--since`.
+- **`--since` is the de-dup lever for resolve-less items.** This skill is
+  stateless; to avoid re-surfacing the same top-level PR comments / review
+  summaries across passes, a caller (e.g. the supervisor) records the
+  last-checked timestamp per PR and passes it back as `--since`. Inline threads
+  ignore `--since` — they de-dup by `isResolved` instead — so an unresolved
+  thread keeps surfacing until it is actually resolved.
