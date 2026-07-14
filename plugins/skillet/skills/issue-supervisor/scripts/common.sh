@@ -46,6 +46,18 @@ export PYTEST_XDIST_AUTO_NUM_WORKERS="${PYTEST_XDIST_AUTO_NUM_WORKERS:-3}"
 # survive to the disable branch, not be silently reset to the default.
 export SKILLET_SESSION_TIMEOUT_SECONDS="${SKILLET_SESSION_TIMEOUT_SECONDS-3600}"
 
+# Scheduling niceness for every dispatched session. The host-aware slot cap (#88) bounds HOW
+# MANY sessions run; this bounds how greedily each competes with the operator's foreground
+# work on the shared box. The detached `claude` and its whole tree (subagents, CI child,
+# xdist workers) inherit the priority, so under `nice` they yield only when the CPU is
+# contended and still run flat out on an idle box. 10 = conventional background priority
+# (0-19, higher = nicer); empty or `0` disables it. `-` not `:-` keeps an empty override.
+export SKILLET_SESSION_NICE="${SKILLET_SESSION_NICE-10}"
+# `ionice` IO class, Linux only (macOS/BSD have no ionice -> graceful no-op). 3 = idle: disk
+# IO runs only when nothing else wants the disk, so a heavy checkout can't starve foreground
+# IO. Empty disables it.
+export SKILLET_SESSION_IONICE_CLASS="${SKILLET_SESSION_IONICE_CLASS-3}"
+
 fail() { printf '{"error": %s}\n' "$(jq -Rn --arg m "$1" '$m')"; exit 1; }
 
 require_tools() {
@@ -90,6 +102,24 @@ resolve_claude() {
   fail "claude executable not found (set CLAUDE_BIN or install the CLI)"
 }
 
+# Build the scheduling-priority prefix for a dispatched spawn: `nice -n N ionice -c C` as an
+# argv array, silently dropping either tool where it's absent (macOS has no ionice; a stripped
+# container may lack both). No trailing `--` is needed — the next arg is the absolute $claude
+# path (a non-option), which already stops nice/ionice option parsing. Sets no floor of its
+# own — an empty SKILLET_SESSION_NICE / _IONICE_CLASS omits that tool, and a host missing both
+# yields an empty prefix, i.e. a plain unprioritised spawn. `nice`/`ionice` prefix a command
+# and exec it, so the prioritised claude tree keeps the same pid and process group the reaper
+# and wall-clock cap rely on. The ionice class is range-checked (1-3, not just numeric): an
+# out-of-range value would make ionice ITSELF exit non-zero inside the nohup exec and abort the
+# whole spawn, so a bad override must drop the tool, matching the graceful "absent" path.
+spawn_prefix() {
+  SPAWN_PREFIX=()
+  local n="${SKILLET_SESSION_NICE:-}" c="${SKILLET_SESSION_IONICE_CLASS:-}"
+  case "$n" in ''|0|*[!0-9]*) ;; *) command -v nice >/dev/null 2>&1 && SPAWN_PREFIX+=(nice -n "$n") ;; esac
+  case "$c" in 1|2|3) command -v ionice >/dev/null 2>&1 && SPAWN_PREFIX+=(ionice -c "$c") ;; esac
+  return 0   # a missing tool leaves the last `&&` false; never let that abort the caller under set -e
+}
+
 # Spawn a dispatched session DETACHED, under a pure-bash wall-clock cap, from $PWD
 # (callers cd into the worktree first). Usage: spawn_capped_session <wt> <prompt>.
 # Writes the session pid to <wt>/.claude/session.pid and logs to session.log, exactly as
@@ -106,6 +136,9 @@ resolve_claude() {
 spawn_capped_session() {
   local wt="$1" prompt="$2" claude pid cap
   claude="$(resolve_claude)"
+  # Run the whole tree at reduced CPU/IO priority so it yields to foreground work under
+  # contention; SPAWN_PREFIX is empty (plain spawn) where neither nice nor ionice exists.
+  spawn_prefix
   # Give the session its OWN process group (pgid == its pid) so the reaper can signal the
   # whole tree — claude, its CI child, xdist workers — by group, not just the bare pid
   # (which would orphan the children, the exact leak this cap exists to stop). `setsid`
@@ -114,7 +147,7 @@ spawn_capped_session() {
   # to this function so we don't flip job control for the whole sourcing script.
   local had_m=1; [[ $- == *m* ]] || had_m=0
   set -m
-  nohup "$claude" -p "$prompt" --permission-mode acceptEdits --add-dir "$wt" \
+  nohup "${SPAWN_PREFIX[@]+"${SPAWN_PREFIX[@]}"}" "$claude" -p "$prompt" --permission-mode acceptEdits --add-dir "$wt" \
     > "$wt/.claude/session.log" 2>&1 &
   pid=$!
   [ "$had_m" = 1 ] || set +m
