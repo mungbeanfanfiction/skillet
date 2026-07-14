@@ -56,11 +56,12 @@ ln -s /path/to/skillet/plugins/skillet ~/.cursor/plugins/local/skillet
 .claude-plugin/marketplace.json   # Claude Code marketplace manifest
 .cursor-plugin/marketplace.json   # Cursor marketplace manifest
 plugins/skillet/
-├── plugin.json                   # Claude Code plugin manifest
+├── plugin.json                   # Claude Code plugin manifest (points at config/hooks.json)
 ├── .cursor-plugin/
 │   └── plugin.json               # Cursor plugin manifest
+├── config/
+│   └── hooks.json                # hook declarations (out of hooks/ so Cursor's loader ignores it)
 ├── hooks/
-│   ├── hooks.json                # hook declarations
 │   ├── block-main-checkout.sh    # worktree-guard logic
 │   ├── block-verbose-comments.sh # verbose-comment guard
 │   └── worktree-status.sh        # writes STATUS.md per worktree
