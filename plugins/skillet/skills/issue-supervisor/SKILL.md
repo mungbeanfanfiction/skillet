@@ -274,6 +274,31 @@ To run the supervisor gently on a busy machine, lower the cap rather than
 throttling individual sessions:
 `SKILLET_SUPERVISOR_MAX_SLOTS=1 claude ... /issue-supervisor`.
 
+Beyond the slot cap, each dispatched session runs at **reduced scheduling
+priority** so it yields to your foreground work when the box is contended (it
+still runs flat out when the box is idle):
+
+- **CPU:** `nice -n 10` on every session and its whole tree (subagents, the CI
+  child, xdist workers all inherit it). Override with `SKILLET_SESSION_NICE=<0–19>`;
+  empty or `0` disables it.
+- **IO:** `ionice -c 3` (idle class) where `ionice` exists — **Linux only**;
+  macOS/BSD ship no `ionice`, so it's a graceful no-op there (and `nice` alone
+  applies). Override with `SKILLET_SESSION_IONICE_CLASS=<1–3>`; empty disables it.
+  A host missing both tools falls back to a plain, unprioritised spawn.
+
+**Serializing heavy per-task steps (test/build) across slots — deliberately not
+done.** The CPU storm that motivated this came from `pytest -n auto` spawning one
+worker *per core* in *each* concurrent session (N × cores on `cores` cores).
+That's already fixed at the root by #88's `PYTEST_XDIST_AUTO_NUM_WORKERS=3` cap
+(bounding per-session parallelism) plus the host-aware slot cap (bounding session
+count); `nice`/`ionice` then keep whatever remains from crowding out foreground
+work. A cross-session serialization lock (only one slot in its test/build phase at
+a time) would need a shared lock the detached sessions can't easily coordinate on,
+would idle slots waiting for the lock, and can't see *inside* a session to know
+when its heavy phase starts or ends — high complexity for a problem the three
+existing throttles already contain. If contention persists on a specific host, the
+first lever is `SKILLET_SUPERVISOR_MAX_SLOTS=1`, not a serialization lock.
+
 ## Hard rules
 No merge, no push to the base branch, only DRAFT PRs (those happen inside
 sessions). Never git restore/checkout/clean/reset. Foreign worktrees are
