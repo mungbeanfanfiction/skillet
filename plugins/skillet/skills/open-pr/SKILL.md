@@ -43,6 +43,97 @@ it never opens, pushes, or commits.
 If `check-verbosity` reports clean (or the skill is unavailable), continue
 silently.
 
+### 0a. Formatting gate (Prettier)
+
+Before opening the PR, make sure the branch's changed files are Prettier-clean
+so the PR doesn't land a formatting-only CI failure. Unlike the verbosity gate,
+this one **auto-applies** in both interactive and non-interactive mode —
+running Prettier is deterministic and safe, so there's no judgment call to gate
+on.
+
+**Detect whether the repo uses Prettier.** Check, in order:
+
+```bash
+# Prettier as a dependency (root package.json; adjust path if the branch's
+# changes live under a subpackage with its own package.json)
+node -e "const p=require('./package.json'); process.exit((p.dependencies&&p.dependencies.prettier)||(p.devDependencies&&p.devDependencies.prettier)?0:1)" 2>/dev/null
+
+# Or a Prettier config file at the repo root
+ls .prettierrc .prettierrc.json .prettierrc.yml .prettierrc.yaml .prettierrc.js \
+   .prettierrc.cjs .prettierrc.mjs prettier.config.js prettier.config.cjs \
+   prettier.config.mjs 2>/dev/null
+```
+
+If neither a dependency nor a config file is found, **skip this gate silently**
+— do not mention it, do not run Prettier. Continue to step 1.
+
+**Scope to the branch's changed files.** Diff against the same base branch
+used elsewhere in this skill (resolve it the same way step 2 does, or reuse the
+value if already computed):
+
+```bash
+BASE=$(gh repo view --json defaultBranchRef --jq '.defaultBranchRef.name')
+CHANGED_FILES=$(git diff --name-only --diff-filter=ACMR "origin/$BASE"...HEAD)
+```
+
+Only files that still exist in the working tree and match extensions Prettier
+handles (`.js .jsx .ts .tsx .json .css .scss .md .yml .yaml` etc. — whatever
+the repo's own Prettier config/ignore rules cover) are in scope. Don't
+second-guess the repo's ignore rules; let Prettier/the format script apply
+them.
+
+**Check formatting.** Prefer the repo's own script over a bare binary, so
+repo-specific config and ignore rules are respected:
+
+- If `package.json` has a `scripts.format:check` (or similarly-named check
+  script), run it scoped to the changed files if the script accepts a file-list
+  argument; otherwise run it as-is and treat any failure as "needs formatting"
+  only if it actually flags files in `$CHANGED_FILES` (a repo-wide check script
+  may legitimately fail on pre-existing unrelated files — don't treat those as
+  this branch's problem).
+- Otherwise run Prettier directly, scoped to the changed files:
+
+  ```bash
+  npx prettier --check $CHANGED_FILES
+  ```
+
+If the check passes (exit 0, or no changed files overlap with reported
+violations), the gate is a no-op — continue silently to step 1.
+
+**Fix and commit if violations are found.** Prefer the repo's own write script:
+
+- If `package.json` has a `scripts.format` script, run `npm run format` (it
+  typically covers the whole repo, which is fine — Prettier only rewrites files
+  that are actually misformatted, so this stays a no-op for files outside the
+  branch's changes).
+- Otherwise run Prettier directly, scoped to the changed files:
+
+  ```bash
+  npx prettier --write $CHANGED_FILES
+  ```
+
+Then stage and commit only the files this branch actually touches (avoid
+sweeping in unrelated repo-wide reformatting if a repo-level `format` script
+touched more than `$CHANGED_FILES`):
+
+```bash
+git add -- $CHANGED_FILES
+git commit -m "style: apply prettier formatting"
+```
+
+If, after running the write step, nothing is actually staged (the "violations"
+were all outside `$CHANGED_FILES`), skip the commit.
+
+- **Interactive:** auto-apply as above, then surface a one-line summary of what
+  was reformatted (e.g. `Prettier formatted 3 files (src/a.ts, src/b.ts,
+  src/c.tsx) — committed as "style: apply prettier formatting"`).
+- **Non-interactive:** apply and commit the same way, silently, and include the
+  summary in the output log alongside the verbosity-gate summary. Do not block.
+
+If Prettier itself errors (e.g. a syntax error in a changed file it can't
+parse), report the error and continue — do not hard-block PR creation on a
+Prettier failure; surface it so the user/CI catches it downstream.
+
 ### 1. Sanity checks
 
 Run from the working tree of the branch the PR will be opened from. Verify:
