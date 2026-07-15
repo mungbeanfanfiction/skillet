@@ -1,3 +1,9 @@
+## [0.33.0](https://github.com/mungbeanfanfiction/skillet/compare/v0.32.1...v0.33.0) (2026-07-15)
+
+### Features
+
+* **skillet:** 99 - add prettier formatting gate to open-pr skill ([#102](https://github.com/mungbeanfanfiction/skillet/issues/102)) ([278805e](https://github.com/mungbeanfanfiction/skillet/commit/278805ee6102e55b5502d65c08320f6b2a9badfc)), closes [#99](https://github.com/mungbeanfanfiction/skillet/issues/99)
+
 ## [0.32.1](https://github.com/mungbeanfanfiction/skillet/compare/v0.32.0...v0.32.1) (2026-07-10)
 
 ### Bug Fixes
