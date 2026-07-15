@@ -214,6 +214,31 @@ def test_dead_session_reports_last_step_and_exit_reason_without_stale_flag():
     assert w["exit_reason"] == "other"
 
 
+def test_pr_awaiting_review_and_restart_capped_worktrees_free_all_slots():
+    # Issue #100: "it thinks its slots are filled if there are PRs that need my
+    # review or other items ... that have hit their restart cap." Neither a
+    # worktree parked on human PR review nor one permanently BLOCKED on the
+    # restart cap is in-flight work, so with a ready backlog and no genuinely
+    # working/stalled worktree, every slot must be free for dispatch.
+    worktree_facts = [
+        {"issue": 20, "path": "/wt/20", "branch": "auto-20", "owned": True,
+         "facts": _facts(has_open_pr=True, process_alive=False)},
+        {"issue": 21, "path": "/wt/21", "branch": "auto-21", "owned": True,
+         "facts": _facts(restart_count=state.RESTART_CAP, process_alive=False)},
+    ]
+    result = survey.assemble(
+        worktree_facts=worktree_facts,
+        eligible_issues=[{"number": 30}, {"number": 31}],
+        cap=3,
+    )
+    by_issue = {w["issue"]: w for w in result["worktrees"]}
+    assert by_issue[20]["state"] == S.PR_OPEN.value
+    assert by_issue[21]["state"] == S.BLOCKED.value
+    assert by_issue[21]["blocked_reason"] == "restart_cap"
+    assert result["free_slots"] == 3
+    assert result["eligible_issues"] == [30, 31]
+
+
 def test_foreign_worktrees_get_foreign_state_not_blocked():
     # state classification is only meaningful for OWNED worktrees; a foreign
     # worktree (someone's real in-progress work, no task.md) must not be reported
