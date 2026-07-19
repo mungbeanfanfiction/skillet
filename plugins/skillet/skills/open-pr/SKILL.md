@@ -270,7 +270,10 @@ Common section conventions:
 - **Overview / Summary / Description / What / Context**
   - If issue found → write a 2–4 sentence summary derived from the issue title + body. Start with what changes and why, not "this PR".
   - Else → synthesize from the conversation context (what the user and assistant discussed building/fixing) plus `git log origin/$BASE..HEAD --pretty='- %s'`.
-  - Always include a `Closes #<n>` / `Fixes #<n>` line at the end of the Overview when an issue was found.
+  - Do not rely on this section alone to close the issue — step 6a appends a
+    guaranteed closing-keyword line outside this freeform text, so the Overview
+    prose can mention the issue naturally without needing to carry the closing
+    keyword itself.
 - **Test plan / Testing / How to test / Verification**
   - If the template uses checkbox syntax (`- [ ]`), preserve the checkboxes — leave them unchecked with `TODO` placeholders rather than inventing tests.
   - If freeform, write a brief bullet list of suggested manual verification steps if you can derive them from the conversation; otherwise leave as `TODO`.
@@ -284,6 +287,28 @@ Common section conventions:
   - Leave as-is, with the template's placeholder content intact.
 
 Preserve all HTML comments in the template (`<!-- ... -->`) verbatim — many repos use them as instructions for reviewers.
+
+### 6a. Guarantee the closing keyword
+
+**Only if an issue was found in step 5.** This step is independent of the
+Overview text produced in step 6 — it exists precisely so a reworded,
+trimmed, or missing Overview can never cause the closing keyword to
+disappear.
+
+Append a dedicated line to the very end of the filled body, on its own line
+outside any freeform prose or template section:
+
+```
+Closes #<n>
+```
+
+Do this unconditionally whenever an issue was found, even if step 6 already
+wrote a `Closes #<n>` / `Fixes #<n>` line inside the Overview — a duplicate
+closing keyword is harmless to GitHub, but a missing one silently breaks
+auto-close on merge. Do not phrase this line any other way (no "Relates to",
+no "See issue") and do not let `check-verbosity` (step 0) or any later
+trimming remove it — it is not part of the freeform content those checks
+target.
 
 ### 7. Derive the PR title
 
