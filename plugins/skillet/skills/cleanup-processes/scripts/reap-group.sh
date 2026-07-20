@@ -1,10 +1,5 @@
 #!/usr/bin/env bash
-# Reap ONE claude process group by pgid — group-aware TERM→KILL of the whole `-pgid`, so
-# the session, xdist workers, and MCP servers go down together with no orphans.
 # Usage: reap-group.sh <pgid> [grace-seconds]
-#
-# Prefers reap_pid when the group's session.pid is on disk (it carries PID-reuse provenance
-# guards); with no pidfile, falls back to a direct group TERM→KILL.
 set -euo pipefail
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -19,15 +14,13 @@ source "$HERE/self-pgids.sh"
 PGID="${1:-}"; GRACE="${2:-30}"
 case "$PGID" in ''|*[!0-9]*) echo "usage: reap-group.sh <pgid> [grace]" >&2; exit 2 ;; esac
 
-# Never reap our own tree — guard every ancestor pgid (see self-pgids.sh), not just ours.
 SELF_PGIDS=" $(self_pgids | tr '\n' ' ') "
 case "$SELF_PGIDS" in *" $PGID "*) echo "refusing: $PGID is a self/ancestor group" >&2; exit 1 ;; esac
 
-# Find this group's session.pid (the group leader's pid == pgid) among on-disk worktrees.
 PIDFILE=""
 if [ -d "$WORKTREES_DIR" ]; then
   for d in "$WORKTREES_DIR"/*/; do
-    [ -d "$d" ] || continue           # no-match glob stays literal → skip
+    [ -d "$d" ] || continue
     pf="$d.claude/session.pid"
     [ -f "$pf" ] || continue
     p="$(tr -d ' \n' < "$pf" 2>/dev/null || true)"
@@ -41,8 +34,6 @@ if [ -n "$PIDFILE" ]; then
   exit 0
 fi
 
-# Pidfile-less orphan: no provenance to validate, so guard the PID-reuse window by
-# re-confirming the group still hosts a `claude` process (re-checked before the KILL too).
 export LC_ALL=C
 group_has_claude() {
   local m

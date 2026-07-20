@@ -1,9 +1,5 @@
 #!/usr/bin/env bash
-# self_pgids: print the pgid of every ancestor of the current process, deduped. Source; don't execute.
-#
-# The whole ancestor chain, not just `$$`'s pgid: Claude Code runs each Bash call in its
-# own group, so the invoking `claude -p` session is an ancestor group several hops up.
-# Reaping by pgid without excluding all of them would kill the session running this skill.
+# self_pgids: print the pgid of every ancestor of the current process, deduped.
 self_pgids() {
   local pid="$$" seen=" " line ppid pgid guard=0
   while [ -n "$pid" ] && [ "$pid" != 0 ] && [ "$guard" -lt 64 ]; do
