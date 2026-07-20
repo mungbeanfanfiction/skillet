@@ -48,7 +48,22 @@ ln -s /path/to/skillet/plugins/skillet ~/.cursor/plugins/local/skillet
 | Hook | What it does |
 |---|---|
 | Worktree guard (`PreToolUse`) | Before any `Edit`/`Write`/`NotebookEdit`, asks for confirmation if you're editing the **primary checkout** instead of a git worktree. Prevents concurrent sessions from clobbering each other in the shared main checkout. Worktrees proceed without a prompt. |
-| Verbose-comment guard (`PreToolUse`) | Before an `Edit`/`Write` to a source file, asks for confirmation when the edit adds **overly verbose, low-value comments** — line-by-line narration that restates the code, `Step N` play-by-play, or comment-heavy diffs. Nudges comments toward explaining *why*, not *what*. Clean edits proceed without a prompt. |
+| Verbose-comment guard (`PreToolUse`) | Before an `Edit`/`Write` to a source file, asks for confirmation when the edit adds **overly verbose, low-value comments** — line-by-line narration that restates the code, `Step N` play-by-play, comment-heavy diffs, or a **top-of-file header that says only *what* a file is**. Nudges comments toward explaining *why*, not *what*. Clean edits proceed without a prompt. |
+
+### Top-of-file comments
+
+Flags a leading comment block that only restates what the file is (judged by
+content, not length — a header explaining *why*, e.g. a constraint or rejected
+alternative, always passes). A bare cross-reference or dependency note doesn't
+count as a *why*. Exempt: shebangs, license/SPDX/generated-file banners,
+pragmas, docstrings, and any single-line header that doesn't just echo the
+filename.
+
+Disable just this check with:
+
+```bash
+export SKILLET_ALLOW_FILE_HEADERS=1
+```
 
 ## Layout
 
