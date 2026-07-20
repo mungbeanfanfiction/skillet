@@ -9,9 +9,11 @@
 # branches in worktrees, never on main. This denies the commit at the source.
 #
 # Detection: resolve the branch for the directory the commit will run in. We
-# honor `git -C <path>` in the command so a commit targeting another worktree
-# is judged by THAT worktree's branch, not the hook's cwd. A detached HEAD or
-# any non-default branch is allowed; only main/master/trunk is blocked.
+# honor a leading `cd <path> &&` and `git -C <path>` in the command (applied
+# in that order, since a `-C` after `cd` resolves relative to it), so a commit
+# targeting another worktree — e.g. `cd .claude/worktrees/foo && git commit`
+# — is judged by THAT worktree's branch, not the hook's cwd. A detached HEAD
+# or any non-default branch is allowed; only main/master/trunk is blocked.
 
 set -euo pipefail
 
@@ -32,13 +34,25 @@ if ! printf '%s' "$command" \
   exit 0
 fi
 
-# Extract a `-C <dir>` target from the command, if present, so we evaluate the
-# branch of the directory the commit actually runs in. Falls back to the hook's
-# cwd otherwise.
+# Extract a leading `cd <dir> &&` (or `cd <dir> ;`) prefix, if present, so a
+# command like `cd .claude/worktrees/foo && git commit` is judged by foo's
+# branch rather than the hook's cwd.
 probe_dir="."
+cd_target="$(printf '%s' "$command" | sed -nE 's/^[[:space:]]*cd[[:space:]]+([^[:space:];&|]+)[[:space:]]*(&&|;).*/\1/p')"
+if [ -n "$cd_target" ] && [ -d "$cd_target" ]; then
+  probe_dir="$cd_target"
+fi
+
+# Extract a `-C <dir>` target from the command, if present, resolved relative
+# to any `cd` prefix already applied above (matching real shell semantics).
 c_target="$(printf '%s' "$command" | sed -nE 's/.*git[[:space:]]+(-[^[:space:]]+[[:space:]]+)*-C[[:space:]]+([^[:space:]]+).*/\2/p')"
-if [ -n "$c_target" ] && [ -d "$c_target" ]; then
-  probe_dir="$c_target"
+if [ -n "$c_target" ]; then
+  if [ "${c_target#/}" != "$c_target" ]; then
+    candidate="$c_target"
+  else
+    candidate="$probe_dir/$c_target"
+  fi
+  [ -d "$candidate" ] && probe_dir="$candidate"
 fi
 
 # Resolve the current branch. Detached HEAD yields empty → allow.
