@@ -1,3 +1,15 @@
+## [0.34.0](https://github.com/mungbeanfanfiction/skillet/compare/v0.33.0...v0.34.0) (2026-07-20)
+
+### Features
+
+* **skillet:** 104 - run scoped tests on changed files in open-pr ([#107](https://github.com/mungbeanfanfiction/skillet/issues/107)) ([67726e6](https://github.com/mungbeanfanfiction/skillet/commit/67726e6616baf6e18cd24f21001f8b98a95bf5d2)), closes [#104](https://github.com/mungbeanfanfiction/skillet/issues/104)
+* **skillet:** 105 - add pickup-issue skill ([#108](https://github.com/mungbeanfanfiction/skillet/issues/108)) ([aa2554c](https://github.com/mungbeanfanfiction/skillet/commit/aa2554cde8937c31abe951e022e00db9a82cfcbf)), closes [#105](https://github.com/mungbeanfanfiction/skillet/issues/105)
+
+### Bug Fixes
+
+* **skillet:** 101 - guarantee closing keyword for correlated issue ([#106](https://github.com/mungbeanfanfiction/skillet/issues/106)) ([c5d1264](https://github.com/mungbeanfanfiction/skillet/commit/c5d1264ef5ce364a22885bf41559676b26678397)), closes [#101](https://github.com/mungbeanfanfiction/skillet/issues/101)
+* **skillet:** 60 - don't count stalled worktrees toward refill slots ([#86](https://github.com/mungbeanfanfiction/skillet/issues/86)) ([ccc76c1](https://github.com/mungbeanfanfiction/skillet/commit/ccc76c1c9d9c50748da7158ecfcbbe0af317a97b)), closes [#60](https://github.com/mungbeanfanfiction/skillet/issues/60)
+
 ## [0.33.0](https://github.com/mungbeanfanfiction/skillet/compare/v0.32.1...v0.33.0) (2026-07-15)
 
 ### Features

@@ -1,6 +1,6 @@
 {
   "name": "skillet",
-  "version": "0.33.0",
+  "version": "0.34.0",
   "description": "Personal collection of agent skills: PR automation, worktree management, and more",
   "author": {
     "name": "Leah Peker",
