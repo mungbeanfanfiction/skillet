@@ -11,6 +11,26 @@ WT="$1"; ISSUE="$2"; TASK="$WT/.claude/task.md"
 [ -f "$TASK" ] || { echo "no task.md at $WT — refusing restart"; exit 1; }
 [ -f "$WT/.claude/question.md" ] && { echo "question pending — not restarting"; exit 0; }
 
+# Defense-in-depth (issue #100): classify() already routes a worktree at the restart
+# cap to BLOCKED, never STALLED, so SKILL.md's step 3 should never call restart.sh on
+# one — but nothing in code enforced that until now. Without this guard a caller that
+# misreads a capped worktree as still-stalled would keep respawning it forever: each
+# respawn frees its slot correctly (BLOCKED is never in-flight), but leaks an unbounded
+# number of live sessions on a worktree the supervisor otherwise treats as dead. Refuse
+# here too, mirroring the question.md guard above (informational exit 0, not an error).
+CUR="$(awk '/## Restart count/{getline; print $1; exit}' "$TASK" 2>/dev/null || echo 0)"
+CAP="$(python3 - "$LIB_DIR" <<'PY'
+import sys
+sys.path.insert(0, sys.argv[1])
+from supervisorlib.state import RESTART_CAP
+print(RESTART_CAP)
+PY
+)"
+[ "${CUR:-0}" -ge "$CAP" ] 2>/dev/null && {
+  echo "restart cap ($CAP) already reached ($CUR) — refusing restart, worktree is BLOCKED"
+  exit 0
+}
+
 # A `stalled` worktree can now mean "hung", not just "exited": a live PID whose
 # heartbeat went cold classifies as stalled. Reap it, or the respawn below would
 # race a second claude against the first in the same worktree.
@@ -50,7 +70,6 @@ fi
 # reads the dead session's timestamp and restarts the healthy one. Absent = not stale.
 rm -f "$WT/.claude/status/HEARTBEAT.md"
 
-CUR="$(awk '/## Restart count/{getline; print $1; exit}' "$TASK" 2>/dev/null || echo 0)"
 NEW=$(( ${CUR:-0} + 1 ))
 python3 - "$TASK" "$NEW" <<'PY'
 import sys, re
