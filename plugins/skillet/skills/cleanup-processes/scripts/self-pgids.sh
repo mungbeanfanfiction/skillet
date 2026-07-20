@@ -1,13 +1,9 @@
 #!/usr/bin/env bash
-# self_pgids: print the process-group id of every ancestor of the current process,
-# one per line, deduped. Source this; do not execute.
+# self_pgids: print the pgid of every ancestor of the current process, deduped. Source; don't execute.
 #
-# Why the whole ancestor chain, not just our own pgid: Claude Code runs each Bash
-# tool call in its OWN process group (a fresh zsh -c), so `$$`'s pgid does NOT match
-# the invoking `claude -p` session's pgid — that session is an ANCESTOR several hops
-# up. Reaping by pgid would then kill the very session that launched this skill. By
-# collecting every ancestor's pgid we guarantee the invoking session's group is always
-# recognized as self and excluded from reaping.
+# The whole ancestor chain, not just `$$`'s pgid: Claude Code runs each Bash call in its
+# own group, so the invoking `claude -p` session is an ancestor group several hops up.
+# Reaping by pgid without excluding all of them would kill the session running this skill.
 self_pgids() {
   local pid="$$" seen=" " line ppid pgid guard=0
   while [ -n "$pid" ] && [ "$pid" != 0 ] && [ "$guard" -lt 64 ]; do

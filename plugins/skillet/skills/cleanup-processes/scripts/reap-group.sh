@@ -1,14 +1,10 @@
 #!/usr/bin/env bash
-# Reap ONE claude process group by pgid. Group-aware (TERM→KILL the whole `-pgid`) so
-# the session, its xdist workers, and MCP servers go down together with no orphans.
+# Reap ONE claude process group by pgid — group-aware TERM→KILL of the whole `-pgid`, so
+# the session, xdist workers, and MCP servers go down together with no orphans.
 # Usage: reap-group.sh <pgid> [grace-seconds]
 #
-# Prefers issue-supervisor's reap_pid when the group's session.pid file is on disk:
-# that path carries the full PID-reuse provenance guards (start-time vs pidfile mtime).
-# When there is no pidfile (a truly orphaned leftover with no worktree), fall back to a
-# direct group TERM→KILL — there is no pidfile to validate against, but the caller only
-# ever reaches this path for a group the survey already classified as a reap candidate,
-# and we still refuse to signal our own tree.
+# Prefers reap_pid when the group's session.pid is on disk (it carries PID-reuse provenance
+# guards); with no pidfile, falls back to a direct group TERM→KILL.
 set -euo pipefail
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -23,8 +19,7 @@ source "$HERE/self-pgids.sh"
 PGID="${1:-}"; GRACE="${2:-30}"
 case "$PGID" in ''|*[!0-9]*) echo "usage: reap-group.sh <pgid> [grace]" >&2; exit 2 ;; esac
 
-# Never reap our own process tree — the invoking `claude -p` session is an ancestor,
-# so guard against EVERY ancestor pgid, not just our immediate group.
+# Never reap our own tree — guard every ancestor pgid (see self-pgids.sh), not just ours.
 SELF_PGIDS=" $(self_pgids | tr '\n' ' ') "
 case "$SELF_PGIDS" in *" $PGID "*) echo "refusing: $PGID is a self/ancestor group" >&2; exit 1 ;; esac
 
@@ -41,17 +36,13 @@ if [ -d "$WORKTREES_DIR" ]; then
 fi
 
 if [ -n "$PIDFILE" ]; then
-  reap_pid "$PGID" "$PIDFILE" "$GRACE"   # full provenance-guarded group reap
+  reap_pid "$PGID" "$PIDFILE" "$GRACE"
   echo "reaped group $PGID via reap_pid ($PIDFILE)"
   exit 0
 fi
 
-# Pidfile-less orphan: no pidfile to prove provenance, so guard the survey→reap PID-reuse
-# window by re-confirming the GROUP still hosts a `claude` process (a recycled pgid would
-# host unrelated commands, none named claude) — re-checked before the delayed KILL too.
-# Only live-leader groups reach here (a dead-leader group has a pidfile → reap_pid above),
-# so the live leader is the claude member we expect. Match is start-anchored like the
-# survey; a spaced binary path is the sole miss.
+# Pidfile-less orphan: no provenance to validate, so guard the PID-reuse window by
+# re-confirming the group still hosts a `claude` process (re-checked before the KILL too).
 export LC_ALL=C
 group_has_claude() {
   local m

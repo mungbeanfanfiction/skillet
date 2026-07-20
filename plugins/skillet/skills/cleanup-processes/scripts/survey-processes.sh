@@ -1,15 +1,8 @@
 #!/usr/bin/env bash
-# Survey claude processes and classify each group as healthy/orphaned/stale/runaway,
-# emitting one JSON object per process group. Nothing is killed here — survey only.
-#
-# Reuses issue-supervisor's common.sh so enumeration and reaping share the SAME
-# portable primitives (ps -Ao pid=,pgid= + awk filter — never `ps -g`; group_members;
-# the pid/group provenance helpers).
-#
-# Output: JSON array on stdout, each element:
+# Survey claude processes, classifying each group as healthy/orphaned/stale/runaway/self.
+# Survey only — nothing is killed here. Reuses issue-supervisor's common.sh for portable
+# primitives. Output: JSON array, one object per group:
 #   { pid, pgid, class, reason, worktree, cpu, is_self, supervisor_alive }
-# class ∈ healthy|orphaned|stale|runaway|self; worktree is the session's --add-dir
-# path (null if not a dispatched session).
 set -euo pipefail
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -23,17 +16,14 @@ source "$HERE/self-pgids.sh"
 
 command -v jq >/dev/null || { echo "jq not installed" >&2; exit 1; }
 
-# Force C locale so `ps` prints %cpu with a decimal POINT — a locale that uses a comma
-# (`90,0`) would make awk's numeric CPU comparisons fall back to string compare.
+# C locale so ps prints %cpu with a decimal POINT — a comma (`90,0`) breaks awk's numeric compare.
 export LC_ALL=C
 
-# `ps -o %cpu=` is portable; a process pegging a core reads ~100+.
 RUNAWAY_CPU="${SKILLET_RUNAWAY_CPU:-90}"
 pid_cpu() { ps -o %cpu= -p "$1" 2>/dev/null | awk 'NR==1{gsub(/ /,"");print ($1==""?0:$1)}'; }
 
-# A live supervisor/sweeper loop holds a FRESH lock dir (see lock.sh); a lock past
-# LOCK_TTL_HOURS is a crashed holder's leftover, not a live owner. This is the single
-# signal gating "healthy": a group is healthy only if a live loop could be managing it.
+# A live supervisor/sweeper holds a FRESH lock dir; one past LOCK_TTL_HOURS is a crashed
+# leftover. This is the sole signal gating "healthy".
 LOCK_TTL_HOURS="${LOCK_TTL_HOURS:-6}"
 loop_alive() {
   local ttl_min=$(( LOCK_TTL_HOURS * 60 )) l
@@ -44,13 +34,11 @@ loop_alive() {
   return 1
 }
 
-# Every ancestor pgid — the invoking `claude -p` session's group is among them and
-# must never be a reap candidate (see self-pgids.sh for why the whole chain).
+# Ancestor pgids never get reaped (see self-pgids.sh).
 SELF_PGIDS=" $(self_pgids | tr '\n' ' ') "
 is_self_pgid() { case "$SELF_PGIDS" in *" $1 "*) return 0 ;; *) return 1 ;; esac; }
 
-# session.pid contents → owning worktree path, for every on-disk worktree. Lets us
-# attribute a bare pgid to its --add-dir dir and find that dir's HEARTBEAT.md.
+# session.pid contents → owning worktree path, to attribute a pgid to its dir and heartbeat.
 declare -a WT_PIDS=() WT_PATHS=()
 if [ -d "$WORKTREES_DIR" ]; then
   for d in "$WORKTREES_DIR"/*/; do
@@ -63,8 +51,7 @@ if [ -d "$WORKTREES_DIR" ]; then
   done
 fi
 
-# The session pid file names the group LEADER (pgid == pid, via set -m), so a member's
-# pgid matches a recorded pid.
+# session.pid names the group LEADER (pgid == pid), so a member's pgid matches a recorded pid.
 worktree_for_pgid() {
   local pgid="$1" i
   for i in "${!WT_PIDS[@]}"; do
@@ -83,13 +70,11 @@ heartbeat_age() {
   echo $(( now - mtime ))
 }
 
-# Candidate process GROUPS to classify (a session + its xdist/MCP children share one
-# pgid). Two sources, unioned + deduped:
-#   (a) live `claude -p` leaders. Command must START with `[<path>/]claude -p ` — claude
-#       in argv[0] position, not matched anywhere in argv (a prompt can contain the
-#       literal "…/claude -p"). A space in the binary path is the only miss; fails safe.
-#   (b) session.pid pgids whose GROUP still has a live member — the dead-leader leak
-#       (claude exited; its workers keep the pgid), invisible to (a).
+# Candidate GROUPS, two sources unioned + deduped:
+#   (a) live `claude -p` leaders — command must START with `[<path>/]claude -p ` (argv[0]
+#       position, not anywhere in argv, since a prompt can contain that literal).
+#   (b) session.pid pgids whose group still has a live member — the dead-leader leak
+#       (claude exited, workers keep the pgid), invisible to (a).
 leader_pgids="$(ps -Ao pgid=,command= 2>/dev/null \
   | awk '{ pgid=$1; sub(/^[ \t]*[0-9]+[ \t]+/,""); if ($0 ~ /^([^ ]*\/)?claude -p /) print pgid }')"
 
@@ -110,8 +95,7 @@ emit_group() {
 
   wt="$(worktree_for_pgid "$pgid")"
 
-  # Hottest member across the group: a runaway worker pegs a core even when the
-  # leader is idle, so classify on the group's max CPU, not the leader's.
+  # Classify on the group's max CPU: a runaway worker pegs a core while the leader is idle.
   for member in $(group_members "$pgid"); do
     cpu="$(pid_cpu "$member")"
     awk -v a="$cpu" -v b="$maxcpu" 'BEGIN{exit !(a>b)}' && maxcpu="$cpu"
@@ -120,8 +104,8 @@ emit_group() {
   is_self_pgid "$pgid" && is_self=true
   loop_alive && sup=true
 
-  # First match wins. runaway is checked before healthy so a pegged group owned by a
-  # live supervisor still surfaces as a candidate.
+  # First match wins; runaway before healthy so a pegged group under a live supervisor
+  # still surfaces as a candidate.
   if [ "$is_self" = true ]; then
     klass="self"; reason="invoking session — never reaped"
   elif awk -v c="$maxcpu" -v t="$RUNAWAY_CPU" 'BEGIN{exit !(c>=t)}'; then
@@ -156,9 +140,7 @@ emit_group() {
       cpu:($cpu|tonumber), is_self:$is_self, supervisor_alive:$sup}'
 }
 
-# Guard the values-expansion: on macOS's stock bash 3.2, `"${arr[@]}"` on an EMPTY
-# array trips `set -u` ("unbound variable"), which pipefail would turn into a nonzero
-# exit on the common "nothing to clean up" path. An empty set → emit `[]` and stop.
+# On bash 3.2, `"${arr[@]}"` on an EMPTY array trips `set -u`; guard the empty case → `[]`.
 if [ "${#SESSION_PGIDS[@]}" -eq 0 ]; then
   echo '[]'
 else
