@@ -210,6 +210,39 @@ guidance:
 
 This limit is intentionally hard: do not open the PR and then warn. Block first.
 
+### 2b. Run scoped tests on changed files
+
+Before pushing, run a fast, targeted test check limited to what this branch
+actually touched — not the full suite or CI. Reuse `$CHANGED_FILES` from step
+2a (or recompute: `git diff --name-only origin/$BASE...HEAD`).
+
+**Map changed files to test targets using the repo's own conventions** —
+don't invent a runner or config. Look for, in order of preference:
+
+- A co-located test file with a matching name (e.g. `foo.ts` →
+  `foo.test.ts`/`foo.spec.ts` next to it or under a parallel `tests/`/`__tests__/`
+  directory).
+- A project test script that accepts a file-list argument (e.g.
+  `package.json`'s `scripts.test` run with `-- <files>`, `pytest <paths>`,
+  `go test ./pkg/...` for touched packages).
+
+Run only the resolved targets. If some changed files map to tests and others
+don't, run the ones that do — don't fail the step and don't skip the whole
+step just because coverage is partial.
+
+**If no test files/targets can be mapped at all**, skip this step silently
+and continue to step 3 — do not fail the PR flow just because scoped tests
+can't be determined.
+
+**On failure**, mirror the 2a blocking pattern:
+
+- **Interactive:** surface the failing test output and stop — do not push.
+- **Non-interactive:** write the failure output to the session's progress log
+  and exit cleanly without pushing.
+
+Do not run the full suite/CI pipeline here — that's CI's job; this step only
+exists to catch obviously broken changes before they reach a draft PR.
+
 ### 3. Push the branch if needed
 
 ```bash
