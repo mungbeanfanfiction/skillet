@@ -68,6 +68,7 @@ def assemble(*, worktree_facts: list, eligible_issues: list, cap: int = None) ->
     return {
         "worktrees": worktrees,
         "free_slots": slots.free(in_flight_states, cap=cap),
+        "refill_slots": slots.free(in_flight_states, cap=cap, count_stalled=False),
         # Reported so the digest can print `slots F/N` against the cap actually in
         # force, rather than a constant that may no longer be 3.
         "slot_cap": cap,
