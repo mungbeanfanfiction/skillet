@@ -40,30 +40,18 @@ Personal marketplace of Claude Code skills.
 
 ### Top-of-file comments
 
-The verbose-comment guard flags a leading comment block that just names or
-summarizes the file, since that restates what the code already shows. A header
-that explains *why* — a constraint, a footgun, a rejected alternative — passes
-regardless of length; the rule reads the header's content, not its size. A bare
-cross-reference (`See models.py`) or dependency note (`Requires psycopg2`) is a
-*what*, so it does not earn a header a pass.
+Flags a leading comment block that only restates what the file is (judged by
+content, not length — a header explaining *why*, e.g. a constraint or rejected
+alternative, always passes). A bare cross-reference or dependency note doesn't
+count as a *why*. Exempt: shebangs, license/SPDX/generated-file banners,
+pragmas, docstrings, and any single-line header that doesn't just echo the
+filename.
 
-Naming the file's subject is fine when the header goes on to explain why; a
-header whose opening line only echoes the filename (`# Session store.` in
-`session_store.py`) is flagged even at one line.
-
-Always exempt: shebangs, license/copyright/SPDX banners, generated-file markers,
-pragmas and linter directives (`# type:`, `//go:`, `/* eslint-disable */`, …),
-docstrings, and any other single-line header.
-
-To disable just this check where a file genuinely needs a header:
+Disable just this check with:
 
 ```bash
 export SKILLET_ALLOW_FILE_HEADERS=1
 ```
-
-The other three heuristics keep running. The rule lives in
-`plugins/skillet/hooks/block-verbose-comments.sh` (heuristic 4); its behavior is
-pinned by `scripts/block-verbose-comments.test.mjs`.
 
 ## Layout
 

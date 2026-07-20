@@ -73,10 +73,6 @@ test("flags comment-heavy edits (>50% comment lines)", () => {
 });
 
 test("does not flag an edit that is exactly 50% comments", () => {
-  // 4 comment lines of 8 non-blank is exactly 50% — the smell is *>50%*, so the
-  // boundary must not trip heuristic 3. A code line leads so heuristic 4 (top-of-
-  // file header) stays out of it, and the comments are why-notes, not narration,
-  // leaving heuristic 3 as the only one in play.
   const { stdout, decision } = runHook({
     file_path: "a.ts",
     new_string:
@@ -156,8 +152,6 @@ test("counts avoids/avoiding as a why, but not the word 'avoidance'", () => {
   const why = runHook({ file_path: "buf.py", content: "# Buffered here.\n# This avoids a syscall per row.\nx = 1" });
   assert.equal(why.stdout, "");
 
-  // The stem must not appear in the header, or `echoes_name` would flag this
-  // regardless of the why-signal and the assertion would pass vacuously.
   const notWhy = runHook({ file_path: "buf.py", content: "# Avoidance wrapper.\n# Wraps the client.\nx = 1" });
   assert.equal(notWhy.decision, "ask");
 });
@@ -174,8 +168,6 @@ test("flags a one-line header that only restates the filename", () => {
 });
 
 test("a why-signal spares a header even when it names the file", () => {
-  // Naming your subject is prose, not restatement — the filename echo must not
-  // override a header that goes on to explain why.
   const { stdout } = runHook({
     file_path: "session_store.py",
     content: "# Session store: in-memory because Redis adds a deploy dependency.\n# Must stay process-local.\nx = 1",
@@ -228,10 +220,6 @@ test("spares a /* */ license banner and a single-line pragma", () => {
   assert.equal(pragma.stdout, "");
 });
 
-// A license/copyright banner carries its exempt keyword on only ONE of its
-// lines; the continuation lines ("All rights reserved.", the MIT permission
-// grant) have none. Exemption must be sticky across the whole banner, else the
-// continuation lines leak into the header and flag a standard OSS license.
 test("spares a multi-line /* */ banner whose keyword is on one line only", () => {
   const { stdout } = runHook({
     file_path: "k.ts",
@@ -251,8 +239,6 @@ test("spares a multi-line # banner whose keyword is on one line only", () => {
   assert.equal(stdout, "", "a #-style license block must not be flagged");
 });
 
-// The banner exemption must not bleed past the banner. A license block, a blank
-// line, then a genuine what-only header is still narration and must flag.
 test("still flags a real what-header that follows a license banner", () => {
   const { decision, reason } = runHook({
     file_path: "auth.py",

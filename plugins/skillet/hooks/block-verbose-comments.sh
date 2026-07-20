@@ -1,26 +1,8 @@
 #!/usr/bin/env bash
-# PreToolUse hook: discourage overly verbose, low-value comments in code edits.
-#
-# LLM-authored code tends to over-comment: narrating every line, restating what
-# the code plainly says, or leaving "Step 1 / Step 2" play-by-play. These
-# comments rot, add noise, and accelerate context compaction. Good comments
-# explain *why*, not *what* — this hook flags the *what*-comments.
-#
-# Scope: only inspects the text being written (Edit.new_string / Write.content).
-# It does not read the whole file, so it judges the incoming change in isolation.
-#
-# Detection (heuristic, tuned to avoid false positives on normal code):
-#   1. Redundant narration: a comment whose words just echo the adjacent code
-#      token, or that opens with a low-value verb like "increment/return/set/
-#      loop/call/define" — classic line-by-line narration.
-#   2. Step-by-step play-by-play: multiple "Step N" / numbered-procedure comments.
-#   3. Comment-heavy diffs: a large share of the *added* lines are comments.
-#
-# Behavior: matches return permissionDecision "ask" (not a hard block) with the
-# offending lines quoted, so the author can confirm intentional comments (e.g. a
-# deliberately documented public API) but is nudged to trim narration. No match
-# emits nothing and the edit proceeds. Anything unparseable exits 0 silently —
-# the hook must never disrupt a session.
+# PreToolUse hook: flags low-value comments (narration, Step-N play-by-play,
+# comment-heavy diffs, what-only file headers) with an "ask" so the author can
+# confirm intentional comments or trim. Judges only the incoming change, not
+# the whole file. Exits 0 silently on anything unparseable.
 
 set -euo pipefail
 
@@ -28,7 +10,6 @@ command -v jq >/dev/null 2>&1 || exit 0
 
 input=$(cat)
 
-# Pull the file path (to gate on source files) and the text being written.
 target=$(printf '%s' "$input" | jq -r '.tool_input.file_path // empty' 2>/dev/null || true)
 content=$(printf '%s' "$input" | jq -r '.tool_input.new_string // .tool_input.content // empty' 2>/dev/null || true)
 old_string=$(printf '%s' "$input" | jq -r '.tool_input.old_string // empty' 2>/dev/null || true)
@@ -42,12 +23,9 @@ case "$target" in
   "") exit 0 ;;
 esac
 
-# Extract comment lines from the added text: //, #, and -- single-line comments.
-# (A leading "#!" shebang is excluded.) We work line-oriented so we can quote
-# the offenders back to the author.
+# Line-oriented (not #!) comment lines, so offenders can be quoted back.
 comment_lines=$(grep -nE '^[[:space:]]*(//|#|--)' <<<"$content" | grep -vE '^[0-9]+:[[:space:]]*#!' || true)
 
-# Count added lines that are comments vs. total non-blank added lines.
 total_nonblank=$(grep -cE '[^[:space:]]' <<<"$content" || true)
 comment_count=$(grep -cE '[^[:space:]]' <<<"$comment_lines" || true)
 
