@@ -67,11 +67,7 @@ def assemble(*, worktree_facts: list, eligible_issues: list, cap: int = None) ->
         worktrees.append(entry)
     return {
         "worktrees": worktrees,
-        # Full-cycle count: `stalled` still consumes a slot because the act step
-        # restarts it before this cycle refills. See slots.free() for why.
         "free_slots": slots.free(in_flight_states, cap=cap),
-        # Refill-only count (event-driven `refill-signals.sh`, which SKIPS the
-        # restart step): a stalled worktree is idle there, so its slot is free.
         "refill_slots": slots.free(in_flight_states, cap=cap, count_stalled=False),
         # Reported so the digest can print `slots F/N` against the cap actually in
         # force, rather than a constant that may no longer be 3.

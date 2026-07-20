@@ -10,17 +10,8 @@ from supervisorlib.state import WorktreeState, is_in_flight
 def free(states: list, *, cap: int, count_stalled: bool = True) -> int:
     """Free slots = cap minus in-flight states.
 
-    `count_stalled` toggles whether a `stalled` worktree consumes a slot:
-
-    - The **full cycle** (survey → act → refill) restarts every stalled worktree
-      in the act step *before* refilling, so a stalled worktree is about to be
-      re-occupied this same cycle. It must keep its slot (`count_stalled=True`,
-      the default) or refill would dispatch a new issue on top of the restart →
-      4 concurrent working sessions.
-    - The **event-driven refill path** (`refill-signals.sh`) runs refill ONLY and
-      skips the act/restart step, so a stalled worktree there is genuinely idle
-      and awaiting its next restart. Pass `count_stalled=False` so its slot frees
-      up for new work between the ~5h polls.
+    count_stalled=False excludes stalled worktrees from the count, for the
+    event-driven refill path which skips the restart step (see refill-signals.sh).
     """
     def consumes(s) -> bool:
         if s is WorktreeState.STALLED and not count_stalled:

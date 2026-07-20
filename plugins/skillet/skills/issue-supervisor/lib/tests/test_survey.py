@@ -19,15 +19,11 @@ def test_assemble_produces_states_and_free_slots():
     assert by_issue[2]["state"] == S.NEEDS_INPUT.value
     assert result["free_slots"] == 2
     assert result["slot_cap"] == 3
-    # No stalled worktree here, so the refill-path count matches free_slots.
     assert result["refill_slots"] == 2
     assert result["eligible_issues"] == [7]
 
 
 def test_stalled_consumes_free_slots_but_not_refill_slots():
-    # A stalled worktree still holds its slot in the full cycle (free_slots),
-    # because §3 restarts it before §4 refills. The event-driven refill path skips
-    # §3, so refill_slots frees the stalled worktree's slot for new work.
     worktree_facts = [
         {"issue": 1, "path": "/wt/1", "branch": "auto-1", "owned": True,
          "facts": {"process_alive": True, "has_question_md": False, "task_complete": False,

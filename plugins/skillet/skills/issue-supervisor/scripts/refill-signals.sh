@@ -11,10 +11,9 @@
 # here so a re-trigger won't redo the same slot.
 #
 # A sentinel is only a hint to look now — `pending_signals` is informational; the
-# refill decision is driven entirely by the survey's `refill_slots` (this path
-# skips §3/restart, so a stalled worktree's slot is free here, unlike the periodic
-# cycle's `free_slots`). So a stale/spurious sentinel costs one survey, never a
-# misfire.
+# refill decision is driven entirely by the survey's `refill_slots` (unlike the
+# periodic cycle's `free_slots`, since this path skips §3/restart). So a
+# stale/spurious sentinel costs one survey, never a misfire.
 set -euo pipefail
 SCRIPTS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPTS_DIR/common.sh"

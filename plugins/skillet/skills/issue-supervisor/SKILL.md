@@ -130,10 +130,9 @@ In the **full cycle** use `free_slots`; in the **event-driven refill path**
 (§ Completion-notification path, which skips §3) use `refill_slots` instead.
 They differ only in how a `stalled` worktree is counted: the full cycle restarts
 stalled worktrees in §3 before refilling, so `free_slots` keeps their slots
-reserved (else a restart + a fresh dispatch would run 4 concurrent sessions);
-the refill path never restarts, so `refill_slots` frees a stalled worktree's slot
-for new work. While the applicable count is `> 0` and the queue is non-empty,
-take the next item:
+reserved; the refill path never restarts, so `refill_slots` frees them for new
+work. While the applicable count is `> 0` and the queue is non-empty, take the
+next item:
 - **Label queue:** lowest `eligible_issues` number. Fetch the body
   (`gh issue view <n>`), judge scope.
 - **File queue (`--file`):** next unchecked `- [ ]` item.
@@ -219,11 +218,10 @@ slot idle until the next poll. To refill promptly:
   - On success it clears the consumed sentinels, leaves the **lock held**, and
     prints the survey JSON (with `pending_signals`/`signals_seen`). Run **only
     §4 (Refill slots)** on that survey, driving off **`refill_slots`** (not
-    `free_slots`) since this path skips §3 and never restarts a stalled worktree —
-    the same scope-triage/dispatch gate — then
-    **always** release the lock with `scripts/lock.sh release`. Skip §3
-    (act-on-worktrees) and decomposition narration; this is a focused refill, not a
-    full cycle.
+    `free_slots`, since this path skips §3 and never restarts a stalled
+    worktree) — the same scope-triage/dispatch gate — then **always** release
+    the lock with `scripts/lock.sh release`. Skip §3 (act-on-worktrees) and
+    decomposition narration; this is a focused refill, not a full cycle.
 - **Recovery (important):** the refill path hands a HELD lock across a process
   boundary, so if this session dies or is interrupted between acquire and release,
   the lock is left behind. `lock.sh` recovers it automatically once it ages past 6h
