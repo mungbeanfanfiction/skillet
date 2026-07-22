@@ -94,9 +94,14 @@ positive trains the user to ignore the check.
 **A. Redundant / obvious comments.** A comment that restates what the adjacent
 code plainly says, echoes a symbol name, or narrates line-by-line
 ("increment counter", "return the result", "// set x to 5"). Good comments
-explain *why*; flag the ones that explain *what* the code already shows. Do
-**not** flag: doc comments on public APIs, `TODO`/`FIXME`/`NOTE`, license
-headers, or comments that capture non-obvious intent, edge cases, or rationale.
+explain *why*; flag the ones that explain *what* the code already shows. This
+includes **top-of-file / module header comments** that merely restate the
+filename or an obvious one-line summary of what's below (e.g.
+`// UserService.ts - handles user stuff`) — these read as legitimate doc
+comments at a glance but add no information beyond what the filename already
+says. Do **not** flag: doc comments on public APIs, `TODO`/`FIXME`/`NOTE`,
+license headers, or comments (including file headers) that capture
+non-obvious intent, edge cases, or rationale.
 
 **B. Leftover narration / debug logs.** `print`/`console.log`/`println!`/
 `fmt.Println`/`echo`-style lines that look like development scaffolding —
