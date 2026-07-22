@@ -2,6 +2,7 @@
 name: create-skill
 description: Scaffold a new skill directory + SKILL.md under plugins/skillet/skills/, following this plugin's frontmatter conventions (name, description, optional argument-hint, model). Always infers or prompts for an appropriate model pin so new skills don't skip it. Use when asked to create/add/scaffold a new skill for this plugin.
 argument-hint: "<skill-name> [description]"
+model: sonnet
 ---
 
 # Create Skill Skill
@@ -46,27 +47,30 @@ Omit the field entirely for argument-less skills (see `question-sweeper`).
 
 Do not silently skip this. Pick one of:
 
-- **No `model:` field** (inherit the session default) — the right choice for
-  most skills, especially ones with non-trivial judgment calls at a normal
-  complexity level. This is the common case; only pin when there's a clear
-  reason to diverge.
 - **`model: haiku`** — cheap, mechanical, deterministic skills: fixed-format
   API calls, label/state syncing, status reporting, no multi-step judgment
   (e.g. `sync-repo-labels`, `worktree-status`, `update-issue`,
   `cleanup-worktrees`).
+- **`model: sonnet`** — pin this whenever a skill's complexity genuinely
+  calls for sonnet: real judgment calls (scaffolding, drafting content,
+  moderate synthesis) that are more than mechanical but don't need opus's
+  depth (e.g. `create-skill` itself). Don't rely on inheriting sonnet from
+  the session default — the caller may be running haiku or opus, so pin it
+  explicitly whenever sonnet is the right tier.
 - **`model: opus`** — reasoning-heavy skills: long supervisor loops, deep
   multi-file investigation/synthesis, or decisions with wide blast radius
   (e.g. `issue-supervisor`, `explore-issue`, `create-epic`,
   `audit-permissions`).
-- **`model: sonnet`** — only if you explicitly want to override a
-  session default that might otherwise be lighter or heavier; rarely needed
-  since sonnet is the typical session default already.
+- **No `model:` field** (inherit the session default) — only when the right
+  tier genuinely depends on caller context, not as a default fallback for
+  "medium difficulty." Prefer pinning explicitly when you can name the tier.
 
 If invoked interactively and the right tier isn't obvious from the
 description, ask the user directly: "Should this skill pin a model (haiku for
-mechanical, opus for heavy reasoning), or inherit the session default?" If
-invoked non-interactively (no way to prompt), infer from task complexity using
-the guidance above and state the choice in your final summary.
+mechanical, sonnet for moderate judgment, opus for heavy reasoning), or
+inherit the session default?" If invoked non-interactively (no way to
+prompt), infer from task complexity using the guidance above and state the
+choice in your final summary.
 
 ### 5. Scaffold the files
 
