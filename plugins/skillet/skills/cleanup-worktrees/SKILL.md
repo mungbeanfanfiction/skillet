@@ -206,21 +206,42 @@ Issue `git worktree remove` calls in **small batches instead of one long shell
 loop** — a loop over a large worktree count (e.g. 16+) can run past the tool's
 command timeout partway through, leaving some removed and some not with no clear
 resume point. Chunk the selected worktrees into groups of **5** and issue each
-chunk as its own tool call (or, in an interactive shell, its own loop iteration
-batch), checking the result before moving to the next chunk:
+chunk as its own tool call, checking the result before moving to the next chunk.
+
+**Each removal in a chunk must be isolated from the others** — a single failed
+`git worktree remove` must not abort or hide the outcome of its neighbors. Do not
+chain the calls with `&&`, and do not run them as one shell invocation that stops
+on the first non-zero exit. Run each as its own command (or append `|| echo
+"FAILED: <path>"` to each line if issuing them together) so every worktree in the
+chunk gets attempted and its result is visible on its own:
 
 ```bash
-# Chunk 1 of N (worktrees 1-5)
-git worktree remove <path1>
-git worktree remove <path2>
-git worktree remove <path3>
-git worktree remove <path4>
-git worktree remove <path5>
+git worktree remove <path1> || echo "FAILED: <path1>"
+git worktree remove <path2> || echo "FAILED: <path2>"
+git worktree remove <path3> || echo "FAILED: <path3>"
+git worktree remove <path4> || echo "FAILED: <path4>"
+git worktree remove <path5> || echo "FAILED: <path5>"
 ```
 
-Then chunk 2, etc. If a chunk fails partway (e.g. hits a timeout), the remaining
-chunks are unaffected and resuming means re-running just the failed/not-yet-run
-entries, not the whole batch.
+Then chunk 2, etc. If a chunk fails partway (e.g. hits a timeout, or one path was
+misclassified and is actually dirty), the remaining chunks — and the remaining
+entries in the same chunk — are unaffected: resuming means re-running just the
+failed/not-yet-run entries, not the whole batch. A batch that reports failure on
+every single worktree is a sign the chunk was run as one all-or-nothing command
+(or every worktree shares one real blocking condition, e.g. the stale-tracked
+`.claude/task.md` case below) — not that `git worktree remove` itself is broken.
+Collect every failure with its path and error into the step 8 report rather than
+stopping the whole cleanup.
+
+**A recurring shared cause worth checking when many worktrees fail at once:**
+worktrees whose branch was created before `.claude/task.md` was untracked from the
+repo (see commit `e823232`, "stop tracking .claude/task.md in git") still carry
+that file as a genuinely **tracked** entry — the supervisor session writes to it
+during work, so it shows as ` M .claude/task.md`, a real tracked modification, not
+untracked scaffolding. Step 3 correctly classifies these 🔴, but if several were
+picked into the batch anyway they'll all fail identically. That's expected given
+the classification, not a bug in the removal step — surface it as a shared cause
+in the report so the user doesn't debug each one individually.
 
 If the worktree is dirty with untracked/ignored files only (a 🟢/🟡 that was kept
 eligible by the untracked-only allowance), **or** dirty only on allowlisted
@@ -254,6 +275,8 @@ Summarize:
 - N worktrees removed
 - M branches deleted
 - K worktrees skipped (and why)
+- Any removals that failed in step 7, each with its path and the actual git error —
+  if more than one failed for the same reason, say so once instead of repeating it
 - Any 🔴 worktrees flagged "possibly superseded" in step 4, with the candidate PR
 
 Run `git worktree list` once more and show what's left.
