@@ -2,6 +2,7 @@
 name: check-verbosity
 description: Check the current branch's diff against its base for verbosity that should be trimmed before a PR is opened — redundant/obvious comments, leftover narration and debug log lines, dead or scaffolding code, and overly wordy prose in docs/skill markdown. Reports concrete findings with file/line references and can optionally apply safe trims. Standalone, and also runs as a pre-PR gate before /open-pr. Never opens, pushes, or commits anything. Use to tighten a branch before publishing it.
 argument-hint: "[base-branch] [--fix] [--json]"
+model: sonnet
 ---
 
 # Check Verbosity

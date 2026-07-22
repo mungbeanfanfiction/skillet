@@ -2,6 +2,7 @@
 name: triage-issue
 description: First-pass triage of an existing GitHub issue — assess it, enrich a thin body non-destructively, apply canonical labels (always including `auto`), set a milestone where derivable, and post a triage-summary comment. The inverse of `/create-issue`. Fully autonomous; does NOT do deep codebase investigation (that's `/explore-issue`). Use when an existing issue needs to be made actionable so `/issue-supervisor` can pick it up, or when running triage by hand on an un-triaged issue.
 argument-hint: "<issue-number>"
+model: sonnet
 ---
 
 # Triage Issue Skill

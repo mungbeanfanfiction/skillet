@@ -2,6 +2,7 @@
 name: init-repo
 description: Bootstrap a GitHub repo with the standard skillet setup — seed the canonical label set (via /sync-repo-labels), add a PR template if one is missing, and optionally enable default-branch protection. Additive and idempotent: safe to re-run against an already-initialized repo. Use to set up a new repo or bring an existing one up to standard.
 argument-hint: "[owner/repo] [--protect-branch]"
+model: haiku
 ---
 
 # Init Repo Skill
