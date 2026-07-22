@@ -1,3 +1,9 @@
+## [0.36.1](https://github.com/mungbeanfanfiction/skillet/compare/v0.36.0...v0.36.1) (2026-07-22)
+
+### Bug Fixes
+
+* **skillet:** 111 - reduce cleanup-worktrees false-red classifications ([#116](https://github.com/mungbeanfanfiction/skillet/issues/116)) ([9b9f3df](https://github.com/mungbeanfanfiction/skillet/commit/9b9f3df10bdd284c2a67b98e187b92d1156cdfd9))
+
 ## [0.36.0](https://github.com/mungbeanfanfiction/skillet/compare/v0.35.0...v0.36.0) (2026-07-22)
 
 ### Features
