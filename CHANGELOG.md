@@ -1,3 +1,9 @@
+## [0.37.0](https://github.com/mungbeanfanfiction/skillet/compare/v0.36.1...v0.37.0) (2026-07-22)
+
+### Features
+
+* **skillet:** 110 - audit skill model pinning, add create-skill ([#115](https://github.com/mungbeanfanfiction/skillet/issues/115)) ([daa88f5](https://github.com/mungbeanfanfiction/skillet/commit/daa88f51c6510ce941edc3e420cf34c1e3752cea)), closes [#110](https://github.com/mungbeanfanfiction/skillet/issues/110) [#110](https://github.com/mungbeanfanfiction/skillet/issues/110)
+
 ## [0.36.1](https://github.com/mungbeanfanfiction/skillet/compare/v0.36.0...v0.36.1) (2026-07-22)
 
 ### Bug Fixes
