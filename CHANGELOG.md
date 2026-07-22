@@ -1,3 +1,9 @@
+## [0.36.0](https://github.com/mungbeanfanfiction/skillet/compare/v0.35.0...v0.36.0) (2026-07-22)
+
+### Features
+
+* **skillet:** 112 - flag verbose top-of-file header comments ([#114](https://github.com/mungbeanfanfiction/skillet/issues/114)) ([d8011bd](https://github.com/mungbeanfanfiction/skillet/commit/d8011bd3a04ca2552f56181df0b5f18f0ae98d2d))
+
 ## [0.35.0](https://github.com/mungbeanfanfiction/skillet/compare/v0.34.0...v0.35.0) (2026-07-22)
 
 ### Features
