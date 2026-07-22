@@ -2,6 +2,7 @@
 name: cleanup-worktrees
 description: Survey all git worktrees and present cleanup candidates whose branches are merged or whose PRs are closed/merged. Lets the user pick which to remove. Supports an autonomous (--noninteractive) mode for unattended callers like /issue-supervisor that removes only provably-safe (🟢) worktrees without prompting. Use when worktrees have accumulated and you want to tidy up.
 argument-hint: "[--noninteractive]"
+model: haiku
 ---
 
 # Cleanup Worktrees Skill

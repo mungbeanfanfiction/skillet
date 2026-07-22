@@ -2,6 +2,7 @@
 name: issue-supervisor
 description: Supervise auto-labeled GitHub issues (or a markdown checklist) across git worktrees — survey ground truth, restart stalled background sessions, dispatch new work to fill its concurrency slots, groom the backlog. Repo-agnostic. Use when running the ~5h supervisor loop.
 argument-hint: "[--label <name> | --file <path>]"
+model: opus
 ---
 
 # issue-supervisor

@@ -2,6 +2,7 @@
 name: create-epic
 description: Create a GitHub epic from the conversation context — an epic issue plus its child issues, all filed under a new GitHub Project. Fully autonomous, no confirmation prompt. Use when asked to file/create/plan an epic, a project, or a set of related issues that should be tracked together.
 argument-hint: "[topic or hint]"
+model: opus
 ---
 
 # Create Epic Skill

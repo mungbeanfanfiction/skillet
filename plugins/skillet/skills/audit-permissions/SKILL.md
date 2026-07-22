@@ -2,6 +2,7 @@
 name: audit-permissions
 description: Audit an RBAC system for drift between its backend source-of-truth permission keys, the frontend mirror, the role-management UI, and enforcement call sites — then fix the drift on a dedicated worktree and open a draft PR. Detects five drift classes (missing-from-mirror, orphaned/unenforced, missing-from-role-UI, value mismatch, incomplete dotted pairs like member_list.view without member_list.edit). Use when permission keys may have fallen out of sync, or to periodically check an RBAC layer.
 argument-hint: "[--report-only]"
+model: opus
 ---
 
 # Audit Permissions Skill

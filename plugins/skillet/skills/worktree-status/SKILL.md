@@ -2,6 +2,7 @@
 name: worktree-status
 description: Report the current status of every git worktree — the work-in-progress narrative (from each worktree's STATUS.md) plus live git state (branch, dirty, ahead/behind, last commit). Flags stale or inactive worktrees. Use when you want to see what's going on across all your worktrees at a glance.
 argument-hint: ""
+model: haiku
 ---
 
 # Worktree Status Skill

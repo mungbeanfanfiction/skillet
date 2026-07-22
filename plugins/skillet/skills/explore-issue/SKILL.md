@@ -2,6 +2,7 @@
 name: explore-issue
 description: Deep-dive a single GitHub issue — create a worktree off latest main, fan out parallel read-only Explore agents, synthesize findings into a committed spec, open a draft PR, and comment on the issue. Use when an issue needs investigation (a spike, an open question, a "why does X" / "should we Y") rather than a direct implementation, or when `/issue-supervisor` routes an `explore`-labeled issue here.
 argument-hint: "<issue-number>"
+model: opus
 ---
 
 # Explore Issue Skill
