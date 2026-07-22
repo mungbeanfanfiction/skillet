@@ -34,6 +34,7 @@ ln -s /path/to/skillet/plugins/skillet ~/.cursor/plugins/local/skillet
 | `/resolve-conflicts` | Bring a PR up to date with its base and auto-resolve only safe conflicts (lock/generated/import-only), leaving the branch pushable; escalate cleanly when a conflict needs human judgment. |
 | `/explore-issue` | Deep-dive one GitHub issue: worktree off main, parallel Explore agents, findings spec, draft PR, and an issue comment. Routed by the `explore` label. |
 | `/create-issue` | Create a GitHub issue from the conversation, auto-labeled (queue/type/area/priority); creates any missing labels first. |
+| `/create-epic` | Create a GitHub epic (parent issue + child issues) from the conversation, all filed under a new GitHub Project. |
 | `/triage-issue` | First-pass triage of an existing GitHub issue: assess, enrich a thin body, apply canonical labels (incl. `auto`), set a milestone, and post a triage comment. The inverse of `/create-issue`. |
 | `/sync-repo-labels` | Seed/sync the canonical label set into a repo (additive + drift-fix, never deletes). |
 | `/init-repo` | Bootstrap a repo to the standard setup: seed labels (via `/sync-repo-labels`), add a PR template if missing, optionally protect the default branch. Additive + idempotent. |
@@ -74,6 +75,7 @@ plugins/skillet/
     ├── resolve-conflicts/SKILL.md
     ├── explore-issue/SKILL.md
     ├── create-issue/SKILL.md
+    ├── create-epic/SKILL.md
     ├── triage-issue/SKILL.md
     ├── sync-repo-labels/SKILL.md
     ├── init-repo/SKILL.md
