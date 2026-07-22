@@ -1,3 +1,9 @@
+## [0.35.0](https://github.com/mungbeanfanfiction/skillet/compare/v0.34.0...v0.35.0) (2026-07-22)
+
+### Features
+
+* **skillet:** add create-epic skill for GitHub Project-backed epics ([#113](https://github.com/mungbeanfanfiction/skillet/issues/113)) ([261c7d9](https://github.com/mungbeanfanfiction/skillet/commit/261c7d9e6b7342edce74f86a9aad66740e98f767))
+
 ## [0.34.0](https://github.com/mungbeanfanfiction/skillet/compare/v0.33.0...v0.34.0) (2026-07-20)
 
 ### Features
