@@ -2,6 +2,7 @@
 name: open-pr
 description: Open a draft pull request on GitHub. Discovers and uses the repo's PR template, fills the overview from the linked issue (if any) or from the conversation context plus git log, and creates the PR in DRAFT mode. Use when ready to open a PR for the current branch.
 argument-hint: "[issue-or-ticket-number] [--noninteractive]"
+model: sonnet
 ---
 
 # Open Draft PR Skill

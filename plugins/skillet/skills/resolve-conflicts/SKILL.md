@@ -2,6 +2,7 @@
 name: resolve-conflicts
 description: Resolve merge conflicts on a PR (or the current branch) by bringing it up to date with its base branch. Detects the conflicting state first, auto-resolves only safe conflicts, and leaves the branch cleanly pushable — or reports clearly when a conflict needs human judgment. Standalone; also consumable by /issue-supervisor. Use when a PR is blocked by merge conflicts after the base branch moved.
 argument-hint: "[pr-number]"
+model: opus
 ---
 
 # Resolve Conflicts Skill

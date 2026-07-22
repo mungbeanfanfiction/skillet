@@ -2,6 +2,7 @@
 name: delete-worktree
 description: Safely remove a git worktree. Checks for uncommitted changes and unmerged/unpushed commits before removing. Optionally deletes the branch too. Supports an autonomous (--noninteractive) mode for unattended callers like /issue-supervisor that act on the safety-check result without prompting. Use when done with a feature and ready to clean up its worktree.
 argument-hint: "<worktree-path-or-branch-name> [--noninteractive]"
+model: haiku
 ---
 
 # Delete Worktree Skill

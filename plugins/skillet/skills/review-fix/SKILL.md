@@ -2,6 +2,7 @@
 name: review-fix
 description: Review a PR with /code-review and automatically fix high and medium severity findings without asking, looping until clean. Unsafe-to-automate findings are posted as inline PR comments instead. Use to auto-improve a PR unattended.
 argument-hint: "[pr-number] [effort]"
+model: opus
 ---
 
 # Review-Fix Skill

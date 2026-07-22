@@ -2,6 +2,7 @@
 name: sync-repo-labels
 description: Seed and sync the canonical skillet label set (auto/type/area/priority) into a GitHub repo so issues are always labelable. Additive and drift-fixing — creates missing labels and updates ones whose color/description drifted, but never deletes or touches labels outside the canonical set. Use to set up labels on a new or existing repo.
 argument-hint: "[owner/repo]"
+model: haiku
 ---
 
 # Sync Repo Labels Skill

@@ -2,6 +2,7 @@
 name: check-pr-comments
 description: Check a pull request for new or unaddressed comments — review comments, inline review threads, and top-level PR comments — distinguishing unaddressed feedback from already-resolved threads. Outputs a concise, actionable summary of what still needs a response. Standalone and invocable on its own; also consumable by /issue-supervisor. Use to see what feedback on a PR still needs handling.
 argument-hint: "<pr-number> [--repo <owner/repo>] [--since <ISO8601>] [--json]"
+model: haiku
 ---
 
 # Check PR Comments

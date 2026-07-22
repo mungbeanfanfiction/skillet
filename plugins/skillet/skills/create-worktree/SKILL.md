@@ -2,6 +2,7 @@
 name: create-worktree
 description: Create a git worktree for a task or GitHub issue, with untracked dotfiles (.env, etc.) symlinked from the main repo. Does NOT merge or push. Use when starting isolated work on a feature, bug fix, or issue.
 argument-hint: "<branch-name-or-issue-number> [description] [--noninteractive]"
+model: haiku
 ---
 
 # Create Worktree Skill

@@ -1,6 +1,7 @@
 ---
 name: question-sweeper
 description: Sweep worktrees for sessions parked on design questions, queue them to a local inbox + GitHub comment, and re-dispatch once the user answers. Repo-agnostic. Use when running the ~1h question-sweeper loop.
+model: haiku
 ---
 
 # question-sweeper

@@ -2,6 +2,7 @@
 name: pickup-issue
 description: Pick up one or more GitHub issues right now — create an isolated worktree per issue (via /create-worktree), implement the change, and leave it ready for /open-pr. The lightweight, single-shot cousin of /issue-supervisor for manually working a specific issue or your assigned backlog. Use when asked to "pick up issue #N", "work on my assigned issues", or similar.
 argument-hint: "[issue-number...] [--noninteractive]"
+model: sonnet
 ---
 
 # Pickup Issue Skill

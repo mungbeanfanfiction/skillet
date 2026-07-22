@@ -2,6 +2,7 @@
 name: update-issue
 description: Post a status update comment to a GitHub issue. Resolves the issue from an explicit number or infers it from the branch/commits, composes a concise status comment (or uses one you pass in), and posts it with the gh CLI. Comment-only and non-destructive — never changes labels, state, or assignees. Use to leave a status update, link a PR, or note progress on an issue.
 argument-hint: "[issue-number] [status message] [--noninteractive]"
+model: haiku
 ---
 
 # Update Issue Skill

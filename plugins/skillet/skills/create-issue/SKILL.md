@@ -2,6 +2,7 @@
 name: create-issue
 description: Create a well-formed GitHub issue from the conversation context, auto-labeled across queue/type/area/priority. Always applies the `auto` label so an autonomous queue can pick it up, infers the rest, and auto-creates any missing labels in the repo. Fully autonomous — no confirmation prompt. Use when asked to file/open/create a GitHub issue.
 argument-hint: "[topic or hint]"
+model: sonnet
 ---
 
 # Create Issue Skill

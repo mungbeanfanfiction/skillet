@@ -2,6 +2,7 @@
 name: pr-fleet-manager
 description: Monitor, triage, and autonomously manage your open GitHub pull requests in the current repo — checking CI status, retrying flaky checks, surfacing review comments, rebasing safe conflicts, and printing a status digest. Does NOT auto-merge PRs or apply review suggestions. Use to run the PR-watching loop.
 argument-hint: ""
+model: sonnet
 ---
 
 # PR Fleet Manager
