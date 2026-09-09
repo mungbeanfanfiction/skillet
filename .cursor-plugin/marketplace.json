@@ -18,6 +18,16 @@
         "name": "Leah Peker",
         "email": "leahpeker@gmail.com"
       }
+    },
+    {
+      "name": "vault",
+      "description": "Capture agent sessions into an Obsidian vault: distilled session notes, atomic insights, and weekly reviews",
+      "version": "0.37.0",
+      "source": "plugins/vault",
+      "author": {
+        "name": "Leah Peker",
+        "email": "leahpeker@gmail.com"
+      }
     }
   ]
 }

@@ -27,11 +27,18 @@ export function setVersionInJson(filePath, path, version) {
   writeFileSync(filePath, JSON.stringify(json, null, 2) + "\n");
 }
 
-const TARGETS = [
+// Every version field in the repo. A plugin missing from this list silently
+// ships with a stale version — nothing errors. The TARGETS-coverage test in
+// set-version.test.mjs guards against that.
+export const TARGETS = [
   { rel: "plugins/skillet/plugin.json", path: ["version"] },
   { rel: "plugins/skillet/.cursor-plugin/plugin.json", path: ["version"] },
+  { rel: "plugins/vault/plugin.json", path: ["version"] },
+  { rel: "plugins/vault/.cursor-plugin/plugin.json", path: ["version"] },
   { rel: ".claude-plugin/marketplace.json", path: ["plugins", 0, "version"] },
+  { rel: ".claude-plugin/marketplace.json", path: ["plugins", 1, "version"] },
   { rel: ".cursor-plugin/marketplace.json", path: ["plugins", 0, "version"] },
+  { rel: ".cursor-plugin/marketplace.json", path: ["plugins", 1, "version"] },
 ];
 
 /** Update both manifest version fields relative to repoRoot. */

@@ -1,0 +1,9 @@
+{
+  "name": "vault",
+  "version": "0.37.0",
+  "description": "Capture Claude Code sessions into an Obsidian vault: distilled session notes, atomic insights, and weekly reviews",
+  "author": {
+    "name": "Leah Peker",
+    "email": "leahpeker@gmail.com"
+  }
+}

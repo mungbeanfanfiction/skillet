@@ -2,6 +2,9 @@
 
 Personal marketplace of agent skills (Claude Code and Cursor).
 
+Two plugins: **skillet** (PR automation, worktrees, GitHub issues) and **vault**
+(capturing sessions into an Obsidian vault).
+
 ## Install
 
 ### Claude Code
@@ -9,6 +12,7 @@ Personal marketplace of agent skills (Claude Code and Cursor).
 ```bash
 /plugin marketplace add mungbeanfanfiction/skillet
 /plugin install skillet@skillet
+/plugin install vault@skillet
 ```
 
 ### Cursor
@@ -21,7 +25,7 @@ Personal marketplace of agent skills (Claude Code and Cursor).
 ln -s /path/to/skillet/plugins/skillet ~/.cursor/plugins/local/skillet
 ```
 
-## Skills
+## Skillet skills
 
 | Skill | What it does |
 |---|---|
@@ -46,13 +50,36 @@ ln -s /path/to/skillet/plugins/skillet ~/.cursor/plugins/local/skillet
 | `/issue-supervisor` | ~5h loop: survey worktrees, restart stalled sessions, dispatch `auto`-labeled issues (or a `--file` checklist) to background sessions, groom the backlog. Watches its own open PRs each pass — dispatches follow-up sessions into a PR's worktree for new comments (via `check-pr-comments`) or merge conflicts (via `resolve-conflicts`), with per-PR de-dup. Opens draft PRs via `review-fix` + `open-pr`. |
 | `/question-sweeper` | ~1h loop: route sessions parked on design questions to `docs/superpowers/questions/` + a GitHub comment, and re-dispatch once answered. |
 
-## Hooks
+## Skillet hooks
 
 | Hook | What it does |
 |---|---|
 | Worktree guard (`PreToolUse`) | Before any `Edit`/`Write`/`NotebookEdit`, asks for confirmation if you're editing the **primary checkout** instead of a git worktree. Prevents concurrent sessions from clobbering each other in the shared main checkout. Worktrees proceed without a prompt. |
 | Verbose-comment guard (`PreToolUse`) | Before an `Edit`/`Write` to a source file, asks for confirmation when the edit adds **overly verbose, low-value comments** — line-by-line narration that restates the code, `Step N` play-by-play, or comment-heavy diffs. Nudges comments toward explaining *why*, not *what*. Clean edits proceed without a prompt. |
 | Slop guard (`PreToolUse`) | Before an `Edit`/`Write` to markdown, asks for confirmation when the prose reads as agent-written — stock vocabulary, contrast-frame rhythm, em-dash or bold density, scaffolding headings over thin content. Thresholds are relative to document length and calibrated against this repo. |
+
+## Vault plugin
+
+Captures Claude Code sessions into an Obsidian vault so you can look back on what
+you worked on and what you learned doing it. Expects the vault at
+`~/Documents/Obsidian Vault`, or `$OBSIDIAN_VAULT`.
+
+| Skill | What it does |
+|---|---|
+| `/vault:log` | Distill a session into `10 Sessions/` with exact stats read from the transcript, and keep its project hub current. Judges whether the session is worth keeping and writes nothing when it isn't. |
+| `/vault:insights` | Pull generalizable lessons into atomic notes in `30 Insights/`, deduped against what's there and backlinked to the source session. |
+| `/vault:recall` | Search the vault before starting work — "have I hit this before?" |
+| `/vault:review` | Roll up a week or month into `50 Reviews/`: what moved, what stalled, recurring themes. |
+| `/vault:backfill` | Sweep `~/.claude/projects/` for sessions never logged and distill the ones worth keeping. |
+| `/vault:lint` | Find broken wikilinks, orphans, and missing frontmatter before they silently empty a Bases dashboard. |
+
+| Hook | What it does |
+|---|---|
+| Session ledger (`Stop`) | Scores the session's accumulated material each turn — turns, files, tool variety, errors, elapsed — and once it clears a loose bar, says so on stdout where Claude can read it and offer `/vault:log`. Fires at most once per session. It does not judge importance; that needs the transcript read, which is the skill's job. |
+| Session queue (`SessionEnd`) | Writes one marker file for a session that ended unlogged, so `/vault:backfill` can find it. `SessionEnd` shares a 1.5s budget and can't prompt, so one small write is the only honest work to do there. |
+
+State lives in `~/.claude/vault/` (`$VAULT_STATE_DIR` to override): `nudged/`,
+`queue/`, and `logged/` markers.
 
 ## Layout
 
@@ -97,6 +124,25 @@ plugins/skillet/
     └── question-sweeper/
         ├── SKILL.md
         └── scripts/sweep.sh
+
+plugins/vault/
+├── plugin.json
+├── .cursor-plugin/plugin.json
+├── hooks/
+│   ├── hooks.json
+│   ├── session-ledger.sh         # Stop: score material, nudge toward /vault:log
+│   └── queue-session.sh          # SessionEnd: queue unlogged sessions
+├── scripts/
+│   ├── session-stats.sh          # transcript -> stats JSON
+│   └── session-stats.jq
+└── skills/
+    ├── _shared/vault-schema.md   # the contract every vault skill reads
+    ├── log/SKILL.md
+    ├── insights/SKILL.md
+    ├── recall/SKILL.md
+    ├── review/SKILL.md
+    ├── backfill/SKILL.md
+    └── lint/SKILL.md
 ```
 
 ## Issue automation
