@@ -12,9 +12,12 @@ session=$(printf '%s' "$input" | jq -r '.session_id // empty' 2>/dev/null) || ex
 transcript=$(printf '%s' "$input" | jq -r '.transcript_path // empty' 2>/dev/null) || exit 0
 cwd=$(printf '%s' "$input" | jq -r '.cwd // empty' 2>/dev/null) || exit 0
 reason=$(printf '%s' "$input" | jq -r '.reason // "other"' 2>/dev/null) || exit 0
-[ -n "$session" ] && [ -n "$transcript" ] || exit 0
+# The path must exist, not just be non-empty. Sessions that ended without ever
+# writing a transcript still carry a transcript_path, and queueing those leaves
+# dead entries backfill can only delete.
+[ -n "$session" ] && [ -n "$transcript" ] && [ -f "$transcript" ] || exit 0
 
-STATE="${VAULT_STATE_DIR:-$HOME/.claude/vault}"
+STATE="${VAULT_STATE_DIR:-$HOME/.local/state/claude-vault}"
 mkdir -p "$STATE/queue" 2>/dev/null || exit 0
 
 # Already logged this session? Nothing to queue.

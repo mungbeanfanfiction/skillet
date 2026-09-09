@@ -16,7 +16,7 @@ session=$(printf '%s' "$input" | jq -r '.session_id // empty' 2>/dev/null) || ex
 [ -n "$transcript" ] && [ -f "$transcript" ] || exit 0
 [ -n "$session" ] || exit 0
 
-STATE="${VAULT_STATE_DIR:-$HOME/.claude/vault}"
+STATE="${VAULT_STATE_DIR:-$HOME/.local/state/claude-vault}"
 mkdir -p "$STATE/nudged" 2>/dev/null || exit 0
 
 # Nudge at most once per session. This is also the cheap path for most turns.

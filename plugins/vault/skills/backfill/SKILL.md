@@ -25,7 +25,7 @@ Read `../_shared/vault-schema.md` first.
 Two sources:
 
 ```bash
-STATE="${VAULT_STATE_DIR:-$HOME/.claude/vault}"
+STATE="${VAULT_STATE_DIR:-$HOME/.local/state/claude-vault}"
 ls "$STATE/queue/"*.json 2>/dev/null                        # ended unlogged
 find ~/.claude/projects -name '*.jsonl' -newermt "$SINCE"    # everything on disk
 ```

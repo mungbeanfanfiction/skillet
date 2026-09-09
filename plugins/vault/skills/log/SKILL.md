@@ -85,7 +85,7 @@ on non-terms, no closing paragraph restating the note.
 ## 5. Record it
 
 ```bash
-STATE="${VAULT_STATE_DIR:-$HOME/.claude/vault}"
+STATE="${VAULT_STATE_DIR:-$HOME/.local/state/claude-vault}"
 mkdir -p "$STATE/logged" && : > "$STATE/logged/$SESSION_ID"
 rm -f "$STATE/queue/$SESSION_ID.json"
 ```
