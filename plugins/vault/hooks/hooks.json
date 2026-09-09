@@ -1,0 +1,26 @@
+{
+  "description": "Vault hooks: score the session's accumulated material each turn and nudge toward /vault:log once it is worth judging (Stop), and queue any session that ends unlogged for /vault:backfill (SessionEnd)",
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/session-ledger.sh\"",
+            "statusMessage": "Checking whether this session is worth logging"
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/queue-session.sh\""
+          }
+        ]
+      }
+    ]
+  }
+}

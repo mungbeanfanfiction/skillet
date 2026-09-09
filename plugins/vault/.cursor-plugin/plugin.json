@@ -1,0 +1,10 @@
+{
+  "name": "vault",
+  "version": "0.0.0",
+  "description": "Capture agent sessions into an Obsidian vault: distilled session notes, atomic insights, and weekly reviews",
+  "author": {
+    "name": "Leah Peker",
+    "email": "leahpeker@gmail.com"
+  },
+  "repository": "https://github.com/mungbeanfanfiction/skillet"
+}
