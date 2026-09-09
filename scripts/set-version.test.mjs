@@ -10,6 +10,8 @@ import {
   bumpFromCommits,
   applyBump,
   nextVersions,
+  renderChangelogSection,
+  annotateRootChangelog,
 } from "./set-version.mjs";
 
 function tmpFixture(name) {
@@ -148,4 +150,54 @@ test("nextVersions bumps only the plugin a commit touched", () => {
   // Reported so the release log shows which tag the range started from; absent
   // means no tags were reachable and all history was scanned.
   assert.equal(v._since, "v0.37.0");
+});
+
+// --- changelogs --------------------------------------------------------------
+
+test("renderChangelogSection groups by type and skips non-releasing commits", () => {
+  const out = renderChangelogSection(
+    "0.1.0",
+    [
+      { hash: "a".repeat(40), message: "feat(vault): add thing" },
+      { hash: "b".repeat(40), message: "fix(vault): correct thing" },
+      { hash: "c".repeat(40), message: "chore(vault): tidy" },
+      { hash: "d".repeat(40), message: "docs: notes" },
+    ],
+    { date: "2026-09-09" },
+  );
+  assert.match(out, /^## 0\.1\.0 \(2026-09-09\)/);
+  assert.match(out, /### Features\n\n\* \*\*vault:\*\* add thing \(aaaaaaa\)/);
+  assert.match(out, /### Bug Fixes\n\n\* \*\*vault:\*\* correct thing \(bbbbbbb\)/);
+  assert.ok(!out.includes("tidy"), "chore must not appear");
+  assert.ok(!out.includes("notes"), "docs must not appear");
+});
+
+test("renderChangelogSection marks breaking changes and links commits", () => {
+  const out = renderChangelogSection(
+    "1.0.0",
+    [{ hash: "e".repeat(40), message: "feat(vault)!: drop old format" }],
+    { date: "2026-09-09", url: "https://example.com/r" },
+  );
+  assert.match(out, /\*\*BREAKING\*\* \*\*vault:\*\* drop old format/);
+  assert.match(out, /\(\[eeeeeee\]\(https:\/\/example\.com\/r\/commit\/e{40}\)\)/);
+});
+
+test("annotateRootChangelog records the plugin versions a release shipped", () => {
+  const dir = mkdtempSync(join(tmpdir(), "cl-"));
+  writeFileSync(
+    join(dir, "CHANGELOG.md"),
+    "## [0.39.0](x) (2026-09-09)\n\n### Features\n\n* something\n",
+  );
+  const versions = {
+    skillet: { next: "0.38.0", bump: null },
+    vault: { next: "0.1.0", bump: "minor" },
+  };
+  annotateRootChangelog(dir, versions);
+  const out = readFileSync(join(dir, "CHANGELOG.md"), "utf8");
+  assert.match(out, /Plugin versions: `skillet@0\.38\.0` \(unchanged\), `vault@0\.1\.0`/);
+  assert.ok(out.indexOf("Plugin versions") < out.indexOf("### Features"), "must sit under the heading");
+
+  // Re-running a release must not stack duplicate lines.
+  annotateRootChangelog(dir, versions);
+  assert.equal(readFileSync(join(dir, "CHANGELOG.md"), "utf8").match(/Plugin versions:/g).length, 1);
 });

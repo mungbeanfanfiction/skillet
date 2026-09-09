@@ -27,6 +27,7 @@
       {
         "assets": [
           "CHANGELOG.md",
+          "plugins/*/CHANGELOG.md",
           "plugins/skillet/plugin.json",
           "plugins/skillet/.cursor-plugin/plugin.json",
           "plugins/vault/.cursor-plugin/plugin.json",

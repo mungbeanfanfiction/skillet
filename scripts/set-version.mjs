@@ -73,19 +73,104 @@ export function applyBump(version, bump) {
   return version;
 }
 
-/** Commit messages since `since` that touched `dir`. Empty when git is unavailable. */
+/** Commits since `since` that touched `dir`, as {hash, message}. */
 function commitsTouching(repoRoot, dir, since) {
   try {
     const range = since ? `${since}..HEAD` : "HEAD";
     const out = execFileSync(
       "git",
-      ["log", range, "--no-merges", "--format=%B%x00", "--", dir],
+      ["log", range, "--no-merges", "--format=%H%x1f%B%x1e", "--", dir],
       { cwd: repoRoot, encoding: "utf8" },
     );
-    return out.split("\0").map((s) => s.trim()).filter(Boolean);
+    return out
+      .split("\x1e")
+      .map((r) => r.trim())
+      .filter(Boolean)
+      .map((r) => {
+        const [hash, message] = r.split("\x1f");
+        return { hash, message: (message || "").trim() };
+      });
   } catch {
     return [];
   }
+}
+
+function repoUrl(repoRoot) {
+  try {
+    const url = execFileSync("git", ["config", "--get", "remote.origin.url"], {
+      cwd: repoRoot,
+      encoding: "utf8",
+    }).trim();
+    return url.replace(/^git@github\.com:/, "https://github.com/").replace(/\.git$/, "");
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * A conventional-changelog-style section for one plugin's release. Only the
+ * types that drive a bump appear, matching what the root changelog shows.
+ */
+export function renderChangelogSection(version, commits, { date, url } = {}) {
+  const day = date || new Date().toISOString().slice(0, 10);
+  const groups = { Features: [], "Bug Fixes": [], "Performance Improvements": [], Reverts: [] };
+  const groupFor = { feat: "Features", fix: "Bug Fixes", perf: "Performance Improvements", revert: "Reverts" };
+
+  for (const { hash, message } of commits) {
+    const subject = message.split("\n", 1)[0];
+    const m = subject.match(/^([a-z]+)(?:\(([^)]*)\))?!?:\s*(.+)$/);
+    if (!m) continue;
+    const [, type, scope, text] = m;
+    const group = groupFor[type];
+    if (!group) continue;
+    const breaking = /!:/.test(subject) || /^BREAKING[ -]CHANGE:/m.test(message);
+    const short = (hash || "").slice(0, 7);
+    const link = url ? ` ([${short}](${url}/commit/${hash}))` : ` (${short})`;
+    groups[group].push(`* ${breaking ? "**BREAKING** " : ""}${scope ? `**${scope}:** ` : ""}${text}${link}`);
+  }
+
+  let out = `## ${version} (${day})\n`;
+  for (const [name, entries] of Object.entries(groups)) {
+    if (!entries.length) continue;
+    out += `\n### ${name}\n\n${entries.join("\n")}\n`;
+  }
+  return out;
+}
+
+/** Prepend a release section to a plugin's own CHANGELOG, creating it if needed. */
+function writePluginChangelog(repoRoot, dir, section) {
+  const file = join(repoRoot, dir, "CHANGELOG.md");
+  const existing = existsSync(file) ? readFileSync(file, "utf8") : "";
+  writeFileSync(file, section + (existing ? "\n" + existing : ""));
+  return file;
+}
+
+/**
+ * Record which plugin versions a repo release actually shipped, under the newest
+ * heading in the root CHANGELOG. Without this the root file implies its own
+ * version number is what shipped, which it is not.
+ */
+export function annotateRootChangelog(repoRoot, versions) {
+  const file = join(repoRoot, "CHANGELOG.md");
+  if (!existsSync(file)) return null;
+
+  const line =
+    "Plugin versions: " +
+    PLUGINS.filter((p) => versions[p.name])
+      .map((p) => {
+        const v = versions[p.name];
+        return `\`${p.name}@${v.next}\`${v.bump ? "" : " (unchanged)"}`;
+      })
+      .join(", ");
+
+  const lines = readFileSync(file, "utf8").split("\n");
+  const i = lines.findIndex((l) => /^#{1,3} \[?\d+\.\d+\.\d+/.test(l));
+  if (i === -1) return null;
+  if ((lines[i + 2] || "").startsWith("Plugin versions:")) return file; // idempotent
+
+  lines.splice(i + 1, 0, "", line);
+  writeFileSync(file, lines.join("\n"));
+  return file;
 }
 
 function lastTag(repoRoot) {
@@ -111,8 +196,9 @@ export function nextVersions(repoRoot) {
     const manifest = join(repoRoot, p.dir, "plugin.json");
     if (!existsSync(manifest)) continue;
     const current = JSON.parse(readFileSync(manifest, "utf8")).version;
-    const bump = bumpFromCommits(commitsTouching(repoRoot, p.dir, since));
-    out[p.name] = { current, bump, next: applyBump(current, bump) };
+    const commits = commitsTouching(repoRoot, p.dir, since);
+    const bump = bumpFromCommits(commits.map((c) => c.message));
+    out[p.name] = { current, bump, next: applyBump(current, bump), commits };
   }
   return out;
 }
@@ -120,17 +206,27 @@ export function nextVersions(repoRoot) {
 /** Write each plugin's computed version into every manifest that carries it. */
 export function updateVersion(_repoVersion, repoRoot) {
   const versions = nextVersions(repoRoot);
+
   for (const { rel, path, plugin } of TARGETS) {
     const v = versions[plugin];
     if (!v) continue;
     setVersionInJson(join(repoRoot, rel), path, v.next);
   }
+
+  const url = repoUrl(repoRoot);
+  for (const p of PLUGINS) {
+    const v = versions[p.name];
+    if (!v || !v.bump) continue; // nothing shipped for this plugin
+    writePluginChangelog(repoRoot, p.dir, renderChangelogSection(v.next, v.commits, { url }));
+  }
+
+  annotateRootChangelog(repoRoot, versions);
   return versions;
 }
 
 // CLI entry: node scripts/set-version.mjs [repo-version]
-// The argument is semantic-release's repo version. It drives the git tag and
-// CHANGELOG; plugin versions are computed from commits, not from it.
+// The argument is semantic-release's repo version. It drives the git tag and the
+// root CHANGELOG; plugin versions are computed from commits, not from it.
 if (import.meta.filename === process.argv[1]) {
   const repoRoot = dirname(import.meta.dirname);
   const versions = updateVersion(process.argv[2], repoRoot);
@@ -147,7 +243,7 @@ if (import.meta.filename === process.argv[1]) {
     if (name === "_since") continue;
     console.log(
       v.bump
-        ? `${name}: ${v.current} -> ${v.next} (${v.bump})`
+        ? `${name}: ${v.current} -> ${v.next} (${v.bump}, ${v.commits.length} commits)`
         : `${name}: ${v.current} (unchanged)`,
     );
   }

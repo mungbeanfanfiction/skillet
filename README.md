@@ -172,7 +172,20 @@ The commit *scope* is documentation; the **paths a commit changes** decide the b
 labelled `feat(vault):` that only edits `scripts/` bumps neither plugin. Keep the scope honest
 anyway — it is how the history stays readable.
 
-The repo tag and `CHANGELOG.md` remain repo-wide. Plugin versions are not derived from them.
+### Changelogs
+
+Each plugin has its own `plugins/<name>/CHANGELOG.md`, written from the commits that
+touched it, so a heading there always matches that plugin's `plugin.json`. A plugin nothing
+touched gets no new section.
+
+The root `CHANGELOG.md` covers the repo and is numbered by the repo tag, which is *not* any
+plugin's version. Each entry therefore records which plugin versions that release shipped:
+
+```
+## [0.39.0](...) (2026-09-09)
+
+Plugin versions: `skillet@0.38.0` (unchanged), `vault@0.1.0`
+```
 
 ### Commit conventions
 
