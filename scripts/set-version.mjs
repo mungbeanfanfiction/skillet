@@ -106,7 +106,7 @@ function lastTag(repoRoot) {
  */
 export function nextVersions(repoRoot) {
   const since = lastTag(repoRoot);
-  const out = {};
+  const out = { _since: since };
   for (const p of PLUGINS) {
     const manifest = join(repoRoot, p.dir, "plugin.json");
     if (!existsSync(manifest)) continue;
@@ -134,7 +134,17 @@ export function updateVersion(_repoVersion, repoRoot) {
 if (import.meta.filename === process.argv[1]) {
   const repoRoot = dirname(import.meta.dirname);
   const versions = updateVersion(process.argv[2], repoRoot);
+
+  // Surfaced in the release log. "no tag found" means the checkout has no tags
+  // (shallow clone?) and every commit was scanned, which over-bumps.
+  console.log(
+    versions._since
+      ? `computing bumps from commits since ${versions._since}`
+      : "WARNING: no tag found -- scanning all history; versions may over-bump",
+  );
+
   for (const [name, v] of Object.entries(versions)) {
+    if (name === "_since") continue;
     console.log(
       v.bump
         ? `${name}: ${v.current} -> ${v.next} (${v.bump})`

@@ -145,4 +145,7 @@ test("nextVersions bumps only the plugin a commit touched", () => {
   assert.equal(v.skillet.next, "0.38.0", "skillet should bump");
   assert.equal(v.vault.next, "0.0.0", "vault must not move");
   assert.equal(v.vault.bump, null);
+  // Reported so the release log shows which tag the range started from; absent
+  // means no tags were reachable and all history was scanned.
+  assert.equal(v._since, "v0.37.0");
 });
