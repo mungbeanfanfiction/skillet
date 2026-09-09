@@ -17,7 +17,7 @@ reason=$(printf '%s' "$input" | jq -r '.reason // "other"' 2>/dev/null) || exit 
 # dead entries backfill can only delete.
 [ -n "$session" ] && [ -n "$transcript" ] && [ -f "$transcript" ] || exit 0
 
-STATE="${VAULT_STATE_DIR:-$HOME/.claude/vault}"
+STATE="${VAULT_STATE_DIR:-$HOME/.local/state/claude-vault}"
 mkdir -p "$STATE/queue" 2>/dev/null || exit 0
 
 # Already logged this session? Nothing to queue.

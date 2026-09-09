@@ -51,7 +51,7 @@ the harness flagged, which includes ones that were expected and handled.
 
 ## Plugin state
 
-`~/.claude/vault/` (override with `$VAULT_STATE_DIR`):
+`~/.local/state/claude-vault/` (override with `$VAULT_STATE_DIR`):
 
 - `nudged/<session-id>` — the Stop hook fired for this session
 - `queue/<session-id>.json` — session ended unlogged, waiting for backfill
@@ -59,6 +59,10 @@ the harness flagged, which includes ones that were expected and handled.
 
 Write `logged/<session-id>` whenever you create a session note, and delete the
 matching `queue/` entry. Skipping this is what produces duplicates.
+
+Deliberately **not** under `~/.claude/`: file-editing tools refuse to write there
+as a protected path, and no allow rule overrides it. An unattended run could write
+notes but never record that it had, so the next run duplicated them.
 
 ## Writing
 
