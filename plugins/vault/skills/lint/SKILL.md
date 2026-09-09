@@ -20,6 +20,13 @@ fields are required; don't hardcode a list here that can drift from it.
 **`--fix`** applies only the mechanical repairs marked safe below. Everything
 else is reported for a human. Without it, report only.
 
+## Scope
+
+Skip `90 Meta/` entirely. Templates carry deliberately empty frontmatter fields,
+and `Vault Conventions.md` contains example wikilinks to notes that do not exist.
+Both look like violations and neither is one. Skip the vault's `CLAUDE.md` too --
+it is instructions, not a note.
+
 ## Checks
 
 **Frontmatter**
