@@ -1,3 +1,11 @@
+## [0.39.2](https://github.com/mungbeanfanfiction/skillet/compare/v0.39.1...v0.39.2) (2026-09-09)
+
+Plugin versions: `skillet@0.38.0` (unchanged), `vault@0.1.2`
+
+### Bug Fixes
+
+* **vault:** queue correctness — dead entries, self-laundering, and protected state dir ([#120](https://github.com/mungbeanfanfiction/skillet/issues/120)) ([e95de14](https://github.com/mungbeanfanfiction/skillet/commit/e95de14ae1d970e354f4021a712f64b213e02bd7))
+
 ## [0.39.1](https://github.com/mungbeanfanfiction/skillet/compare/v0.39.0...v0.39.1) (2026-09-09)
 
 Plugin versions: `skillet@0.38.0` (unchanged), `vault@0.1.1`

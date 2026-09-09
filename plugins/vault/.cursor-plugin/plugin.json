@@ -1,6 +1,6 @@
 {
   "name": "vault",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Capture agent sessions into an Obsidian vault: distilled session notes, atomic insights, and weekly reviews",
   "author": {
     "name": "Leah Peker",
