@@ -36,6 +36,7 @@ ln -s /path/to/skillet/plugins/skillet ~/.cursor/plugins/local/skillet
 | `/create-issue` | Create a GitHub issue from the conversation, auto-labeled (queue/type/area/priority); creates any missing labels first. |
 | `/create-epic` | Create a GitHub epic (parent issue + child issues) from the conversation, all filed under a new GitHub Project. |
 | `/create-skill` | Scaffold a new skill directory + SKILL.md, following this plugin's frontmatter conventions; always decides on a `model:` pin so new skills don't skip it. |
+| `/deslop` | Strip AI tells out of prose and rewrite it in Leah's voice — concise, concrete, no scaffolding. Reports by default; `--fix` rewrites. Also the shared writing standard other skills follow before writing prose. |
 | `/triage-issue` | First-pass triage of an existing GitHub issue: assess, enrich a thin body, apply canonical labels (incl. `auto`), set a milestone, and post a triage comment. The inverse of `/create-issue`. |
 | `/sync-repo-labels` | Seed/sync the canonical label set into a repo (additive + drift-fix, never deletes). |
 | `/init-repo` | Bootstrap a repo to the standard setup: seed labels (via `/sync-repo-labels`), add a PR template if missing, optionally protect the default branch. Additive + idempotent. |
@@ -51,6 +52,7 @@ ln -s /path/to/skillet/plugins/skillet ~/.cursor/plugins/local/skillet
 |---|---|
 | Worktree guard (`PreToolUse`) | Before any `Edit`/`Write`/`NotebookEdit`, asks for confirmation if you're editing the **primary checkout** instead of a git worktree. Prevents concurrent sessions from clobbering each other in the shared main checkout. Worktrees proceed without a prompt. |
 | Verbose-comment guard (`PreToolUse`) | Before an `Edit`/`Write` to a source file, asks for confirmation when the edit adds **overly verbose, low-value comments** — line-by-line narration that restates the code, `Step N` play-by-play, or comment-heavy diffs. Nudges comments toward explaining *why*, not *what*. Clean edits proceed without a prompt. |
+| Slop guard (`PreToolUse`) | Before an `Edit`/`Write` to markdown, asks for confirmation when the prose reads as agent-written — stock vocabulary, contrast-frame rhythm, em-dash or bold density, scaffolding headings over thin content. Thresholds are relative to document length and calibrated against this repo. |
 
 ## Layout
 
@@ -65,6 +67,7 @@ plugins/skillet/
 │   ├── hooks.json                # hook declarations
 │   ├── block-main-checkout.sh    # worktree-guard logic
 │   ├── block-verbose-comments.sh # verbose-comment guard
+│   ├── block-slop.sh             # AI-prose guard
 │   └── worktree-status.sh        # writes STATUS.md per worktree
 └── skills/
     ├── open-pr/SKILL.md
