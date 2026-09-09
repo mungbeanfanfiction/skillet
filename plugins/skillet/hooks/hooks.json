@@ -1,5 +1,5 @@
 {
-  "description": "Skillet hooks: guard against editing or committing on the primary checkout and flag overly verbose comments (PreToolUse), refresh each worktree's liveness heartbeat to .claude/status/HEARTBEAT.md (PostToolUse, SessionEnd), and record its work-in-progress status to .claude/status/STATUS.md (Stop)",
+  "description": "Skillet hooks: guard against editing or committing on the primary checkout, flag overly verbose comments and agent-written prose (PreToolUse), refresh each worktree's liveness heartbeat to .claude/status/HEARTBEAT.md (PostToolUse, SessionEnd), and record its work-in-progress status to .claude/status/STATUS.md (Stop)",
   "hooks": {
     "PreToolUse": [
       {
@@ -29,6 +29,11 @@
             "type": "command",
             "command": "${CLAUDE_PLUGIN_ROOT}/hooks/block-verbose-comments.sh",
             "statusMessage": "Checking for overly verbose comments"
+          },
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/block-slop.sh",
+            "statusMessage": "Checking prose for AI tells"
           }
         ]
       }
