@@ -1,3 +1,9 @@
+## [0.38.0](https://github.com/mungbeanfanfiction/skillet/compare/v0.37.0...v0.38.0) (2026-09-09)
+
+### Features
+
+* **skillet:** add deslop skill and prose guard hook ([#117](https://github.com/mungbeanfanfiction/skillet/issues/117)) ([fd5f89f](https://github.com/mungbeanfanfiction/skillet/commit/fd5f89f4832f1ddf8f721f6a96678d594e69fccd))
+
 ## [0.37.0](https://github.com/mungbeanfanfiction/skillet/compare/v0.36.1...v0.37.0) (2026-07-22)
 
 ### Features
