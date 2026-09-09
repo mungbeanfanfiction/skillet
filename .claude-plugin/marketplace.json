@@ -19,7 +19,7 @@
     {
       "name": "vault",
       "description": "Capture Claude Code sessions into an Obsidian vault: distilled session notes, atomic insights, and weekly reviews",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "source": "./plugins/vault",
       "author": {
         "name": "Leah Peker",

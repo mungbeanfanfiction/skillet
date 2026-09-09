@@ -1,3 +1,11 @@
+## [0.39.1](https://github.com/mungbeanfanfiction/skillet/compare/v0.39.0...v0.39.1) (2026-09-09)
+
+Plugin versions: `skillet@0.38.0` (unchanged), `vault@0.1.1`
+
+### Bug Fixes
+
+* **vault:** scope lint away from 90 Meta ([#119](https://github.com/mungbeanfanfiction/skillet/issues/119)) ([f1ea196](https://github.com/mungbeanfanfiction/skillet/commit/f1ea1969f2a791ff6c469f73ee49b889839df02b))
+
 ## [0.39.0](https://github.com/mungbeanfanfiction/skillet/compare/v0.38.0...v0.39.0) (2026-09-09)
 
 Plugin versions: `skillet@0.38.0` (unchanged), `vault@0.1.0`

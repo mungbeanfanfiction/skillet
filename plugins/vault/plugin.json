@@ -1,6 +1,6 @@
 {
   "name": "vault",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Capture Claude Code sessions into an Obsidian vault: distilled session notes, atomic insights, and weekly reviews",
   "author": {
     "name": "Leah Peker",
