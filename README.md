@@ -160,11 +160,19 @@ Requires `python3` + `pytest` for the test suite, and `gh`/`jq`/`git`. See
 
 ## Versioning
 
-Versions are managed automatically by [semantic-release](https://semantic-release.gitbook.io/).
-Every merge to `main` is analyzed for [Conventional Commits](https://www.conventionalcommits.org/);
-the highest bump among the merged commits wins. On a releasable merge, CI bumps
-the version in `plugins/skillet/plugin.json`, `plugins/skillet/.cursor-plugin/plugin.json`, `.claude-plugin/marketplace.json`, and `.cursor-plugin/marketplace.json`,
-updates `CHANGELOG.md`, and pushes a `vX.Y.Z` tag — no manual step required.
+Releases run on [semantic-release](https://semantic-release.gitbook.io/): every merge to
+`main` is analyzed for [Conventional Commits](https://www.conventionalcommits.org/), and a
+releasable merge updates `CHANGELOG.md` and pushes a `vX.Y.Z` repo tag.
+
+**Each plugin versions independently.** `scripts/set-version.mjs` computes a bump per plugin
+from the commits since the last tag that touched **that plugin's directory**, so a skillet
+fix leaves `vault` untouched and vice versa. A plugin nothing touched keeps its version.
+
+The commit *scope* is documentation; the **paths a commit changes** decide the bump. A commit
+labelled `feat(vault):` that only edits `scripts/` bumps neither plugin. Keep the scope honest
+anyway — it is how the history stays readable.
+
+The repo tag and `CHANGELOG.md` remain repo-wide. Plugin versions are not derived from them.
 
 ### Commit conventions
 
@@ -180,5 +188,12 @@ Notes:
 
 - The `!` must sit immediately before the colon: `feat!:` works, `feat !:` does not.
 - `BREAKING CHANGE:` must be in the commit **body/footer**, not the subject line.
-- A release with both a `feat:` and a `fix:` takes the higher bump (minor).
+- Several commits touching one plugin take the highest bump among them.
 - Commits that map to "none" still run the workflow, but it exits without releasing.
+
+### Adding a plugin
+
+Add it to `PLUGINS` in `scripts/set-version.mjs` and to the `plugins[]` array in both
+marketplace manifests, in the same order. Three tests walk the repo and fail until you do,
+so a new plugin cannot silently ship with a stale version. Start it at `0.0.0` and let its
+first `feat:` produce `0.1.0`.
