@@ -113,9 +113,49 @@ git -C "$MAIN" ls-files --others --ignored --exclude-standard \
 
 `ln -sfn` makes this idempotent — safe to re-run.
 
+If that loop links nothing, say so rather than moving on quietly — a worktree with
+no `.env` looks fine until the app 400s or refuses to boot, far from this step. Two
+cases, distinguished by whether the main repo has an env file at all:
+
+- **Main has no `.env`, but tracks a `.env.example`** → tell the user, and offer to
+  seed `$MAIN/.env` from it so this and every future worktree has something to link.
+  Never invent secret values; copy the example and leave secrets blank.
+- **Main has `.env`, but it's not gitignored** → `ls-files --others --ignored` can't
+  see it. Point at the missing ignore rule instead of silently skipping.
+
+Check the seeded file covers every key the app reads at boot. A key that appears in
+neither `.env` nor `.env.example` is the expensive kind: it surfaces as a runtime
+error with no local precedent to copy from.
+
 If the user's project needs other untracked files symlinked (e.g. local config, secrets, certificates), ask before adding them — don't guess.
 
-### 5. (Optional) Assign the GitHub issue
+### 5. Carry over installed dependencies
+
+A fresh worktree has no `node_modules` / `.venv`, so the app can't run and the
+editor's language server has nothing to resolve against. Reinstalling per worktree
+is slow, and needs the package manager on `PATH` — which isn't guaranteed (a repo
+pinning `pnpm` via `packageManager` may have no `pnpm` binary installed at all).
+
+Link the main repo's installed trees instead:
+
+```bash
+for rel in $(git -C "$MAIN" ls-files --others --ignored --exclude-standard --directory \
+             | grep -E '(^|/)(node_modules|\.venv)/$' | sed 's:/$::'); do
+    [ -e "<new-worktree-path>/$rel" ] && continue
+    ln -sfn "$MAIN/$rel" "<new-worktree-path>/$rel"
+done
+```
+
+One caveat to state when you do this: the link is shared, so installing or upgrading
+a dependency in one worktree changes every worktree pointing at it. That's the right
+trade while branches share a lockfile. When a branch *does* change dependencies,
+replace its link with a real install for that worktree alone:
+
+```bash
+rm "<worktree>/frontend/node_modules" && <pkg-manager> install --dir "<worktree>/frontend"
+```
+
+### 6. (Optional) Assign the GitHub issue
 
 If an issue number was used and the user wants it assigned to them:
 
@@ -126,7 +166,7 @@ gh issue edit <number> --repo "$REPO" --add-assignee @me
 Ask first — not every workflow uses issue assignment. (In non-interactive mode,
 skip assignment entirely unless explicitly requested.)
 
-### 6. Hand off
+### 7. Hand off
 
 Tell the user the worktree path. They can `cd` into it to work, or start a new Claude session there.
 
