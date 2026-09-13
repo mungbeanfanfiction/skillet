@@ -1,3 +1,11 @@
+## [0.40.0](https://github.com/mungbeanfanfiction/skillet/compare/v0.39.2...v0.40.0) (2026-09-13)
+
+Plugin versions: `skillet@0.39.0`, `vault@0.1.2` (unchanged)
+
+### Features
+
+* **create-worktree:** carry deps over and fail loudly on a missing .env ([#121](https://github.com/mungbeanfanfiction/skillet/issues/121)) ([eb9fffd](https://github.com/mungbeanfanfiction/skillet/commit/eb9fffd67722a7fb948738d5e0e8d3ef2a964557))
+
 ## [0.39.2](https://github.com/mungbeanfanfiction/skillet/compare/v0.39.1...v0.39.2) (2026-09-09)
 
 Plugin versions: `skillet@0.38.0` (unchanged), `vault@0.1.2`
