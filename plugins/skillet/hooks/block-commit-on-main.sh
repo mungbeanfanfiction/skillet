@@ -9,9 +9,12 @@
 # branches in worktrees, never on main. This denies the commit at the source.
 #
 # Detection: resolve the branch for the directory the commit will run in. We
-# honor `git -C <path>` in the command so a commit targeting another worktree
-# is judged by THAT worktree's branch, not the hook's cwd. A detached HEAD or
-# any non-default branch is allowed; only main/master/trunk is blocked.
+# start from the session cwd in the hook input, then honor a leading
+# `cd <dir> &&` (Claude Code now prefixes commands this way to target a
+# worktree while the hook runs from the primary checkout) and `git -C <path>`,
+# so a commit targeting another worktree is judged by THAT worktree's branch.
+# A detached HEAD or any non-default branch is allowed; only main/master/trunk
+# is blocked.
 
 set -euo pipefail
 
@@ -32,13 +35,37 @@ if ! printf '%s' "$command" \
   exit 0
 fi
 
-# Extract a `-C <dir>` target from the command, if present, so we evaluate the
-# branch of the directory the commit actually runs in. Falls back to the hook's
-# cwd otherwise.
-probe_dir="."
-c_target="$(printf '%s' "$command" | sed -nE 's/.*git[[:space:]]+(-[^[:space:]]+[[:space:]]+)*-C[[:space:]]+([^[:space:]]+).*/\2/p')"
-if [ -n "$c_target" ] && [ -d "$c_target" ]; then
-  probe_dir="$c_target"
+# Resolve a path token against a base dir: strip surrounding quotes, expand a
+# leading ~, and make relative paths relative to the base.
+resolve_dir() {
+  local p="$1" base="$2"
+  p="${p#\"}"; p="${p%\"}"; p="${p#\'}"; p="${p%\'}"
+  case "$p" in
+    "~") p="$HOME" ;;
+    "~/"*) p="$HOME/${p#\~/}" ;;
+  esac
+  case "$p" in
+    /*) printf '%s' "$p" ;;
+    *) printf '%s/%s' "$base" "$p" ;;
+  esac
+}
+
+# Start from the session's cwd (hook input), falling back to the hook's own cwd.
+probe_dir="$(jq -r '.cwd // ""' <<<"$input")"
+[ -n "$probe_dir" ] && [ -d "$probe_dir" ] || probe_dir="."
+
+# A leading `cd <dir> &&` (or `;`) moves the commit into <dir>.
+cd_target="$(printf '%s' "$command" | sed -nE 's/^[[:space:]]*cd[[:space:]]+("[^"]+"|'"'"'[^'"'"']+'"'"'|[^[:space:];&|]+)[[:space:]]*(&&|;).*/\1/p')"
+if [ -n "$cd_target" ]; then
+  cd_dir="$(resolve_dir "$cd_target" "$probe_dir")"
+  [ -d "$cd_dir" ] && probe_dir="$cd_dir"
+fi
+
+# A `-C <dir>` on the git invocation wins, resolved relative to the above.
+c_target="$(printf '%s' "$command" | sed -nE 's/.*git[[:space:]]+(-[^[:space:]]+[[:space:]]+)*-C[[:space:]]+("[^"]+"|'"'"'[^'"'"']+'"'"'|[^[:space:];&|]+).*/\2/p')"
+if [ -n "$c_target" ]; then
+  c_dir="$(resolve_dir "$c_target" "$probe_dir")"
+  [ -d "$c_dir" ] && probe_dir="$c_dir"
 fi
 
 # Resolve the current branch. Detached HEAD yields empty → allow.
