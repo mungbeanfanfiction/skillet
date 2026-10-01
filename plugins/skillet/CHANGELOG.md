@@ -1,3 +1,9 @@
+## 0.39.1 (2026-10-01)
+
+### Bug Fixes
+
+* **hooks:** honor leading `cd <dir> &&` in block-commit-on-main (#122) ([3da847c](https://github.com/mungbeanfanfiction/skillet/commit/3da847cedcd07d8cff874c4da86be5a4216b0932))
+
 ## 0.39.0 (2026-09-13)
 
 ### Features

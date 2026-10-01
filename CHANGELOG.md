@@ -1,3 +1,11 @@
+## [0.40.1](https://github.com/mungbeanfanfiction/skillet/compare/v0.40.0...v0.40.1) (2026-10-01)
+
+Plugin versions: `skillet@0.39.1`, `vault@0.1.2` (unchanged)
+
+### Bug Fixes
+
+* **hooks:** honor leading `cd <dir> &&` in block-commit-on-main ([#122](https://github.com/mungbeanfanfiction/skillet/issues/122)) ([3da847c](https://github.com/mungbeanfanfiction/skillet/commit/3da847cedcd07d8cff874c4da86be5a4216b0932))
+
 ## [0.40.0](https://github.com/mungbeanfanfiction/skillet/compare/v0.39.2...v0.40.0) (2026-09-13)
 
 Plugin versions: `skillet@0.39.0`, `vault@0.1.2` (unchanged)
