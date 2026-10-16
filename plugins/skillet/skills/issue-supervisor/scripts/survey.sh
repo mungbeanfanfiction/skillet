@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
 # Read-only ground-truth survey. Emits JSON to stdout for SKILL.md.
 # On any error: print {"error": "..."} and exit 1 so the cycle skips.
+#
+# Subprocess budget is O(1) in worktree count, not O(N): the open- and merged-PR
+# branch sets are each fetched with ONE `gh pr list`, path+branch come from a
+# single `git worktree list --porcelain`, and per-worktree JSON is slurped in one
+# jq. The only remaining per-worktree fork is the unavoidable `git -C diff`.
 set -euo pipefail
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/common.sh"
 require_tools
@@ -17,12 +22,24 @@ PRS_JSON="$(gh pr list --repo "$REPO" --state open --limit 100 \
 
 OPEN_PR_BRANCHES="$(echo "$PRS_JSON" | jq -r '[.[].headRefName] | @json')"
 
+# `--state merged` excludes closed-but-unmerged PRs on purpose: that work was
+# abandoned, not shipped, so it keeps its ordinary classification. The 200-PR
+# window covers every branch a live worktree could still be on; a merge older than
+# that only costs one wasted restart, whereas a false positive would strand real
+# work as `merged`. Any gh/jq failure yields an empty set — a missed merge, never
+# a false positive — which is the safe direction.
+MERGED_PR_BRANCHES="$(gh pr list --repo "$REPO" --state merged --limit 200 \
+  --json headRefName 2>/dev/null | jq -r '[.[].headRefName] | @json' 2>/dev/null || echo '[]')"
+
+# One clock read for the whole survey; heartbeat age is measured against it.
+NOW="$(date +%s)"
+
 # Collect RAW filesystem facts only; ownership/issue are derived in the Python
 # pass below. Keeps untrusted worktree paths out of inlined Python literals.
-FACTS="[]"
-while read -r path; do
+# A detached-HEAD worktree has no `branch` line; awk emits the literal `HEAD` for
+# it (what `git rev-parse --abbrev-ref HEAD` returned) to keep output identical.
+FACTS="$(while IFS=$'\t' read -r path branch; do
   [ -z "$path" ] && continue
-  branch="$(git -C "$path" rev-parse --abbrev-ref HEAD 2>/dev/null || echo "")"
   has_q="$([ -f "$path/.claude/question.md" ] && echo true || echo false)"
   pid_file="$path/.claude/session.pid"
   alive=false
@@ -48,7 +65,7 @@ while read -r path; do
   hb_age=null; last_step=null; exit_reason=null
   if [ -f "$hb" ]; then
     hb_mtime="$(file_mtime "$hb" || echo "")"
-    case "$hb_mtime" in (''|*[!0-9]*) : ;; (*) hb_age=$(( $(date +%s) - hb_mtime )) ;; esac
+    case "$hb_mtime" in (''|*[!0-9]*) : ;; (*) hb_age=$(( NOW - hb_mtime )) ;; esac
     # awk exits at the first match: a `sed | head -1` pipeline SIGPIPEs on a large
     # file, and under pipefail that trips the ERR trap and kills the whole cycle.
     last_step="$(awk '/^- last step: /{sub(/^- last step: /,""); print; exit}' "$hb" | jq -Rs 'rtrimstr("\n")')"
@@ -57,19 +74,11 @@ while read -r path; do
     [ "$last_step" = '""' ] && last_step=null
   fi
   has_pr="$(echo "$OPEN_PR_BRANCHES" | jq --arg b "$branch" 'index($b) != null')"
-  # Merged state comes from GitHub, not from task.md, so a stale local marker
-  # can't fake it. Scoped to this branch (`--head`) rather than a repo-wide
-  # `--state all` page, whose 100-PR window would silently drop older merges.
-  # `--state merged` excludes closed-but-unmerged PRs on purpose: that work was
-  # abandoned or rejected, not shipped, so it keeps its ordinary classification.
-  # Any gh/jq failure leaves it false: a missed merge only costs one wasted
-  # restart, while a false positive would strand real work as `merged`.
+  # Merged state comes from GitHub, not task.md, so a stale local marker can't fake
+  # it. Empty branch never matches.
   pr_merged=false
   if [ -n "$branch" ]; then
-    merged_count="$(gh pr list --repo "$REPO" --head "$branch" --state merged \
-      --limit 1 --json number 2>/dev/null | jq 'length' 2>/dev/null || echo 0)"
-    case "$merged_count" in (''|*[!0-9]*) merged_count=0 ;; esac
-    if [ "$merged_count" -gt 0 ]; then pr_merged=true; fi
+    pr_merged="$(echo "$MERGED_PR_BRANCHES" | jq --arg b "$branch" 'index($b) != null')"
   fi
   # Changed lines vs base (added + deleted) — the metric open-pr caps at 400.
   # Exclude lockfiles/generated files; any git failure → 0 so survey never aborts.
@@ -79,7 +88,7 @@ while read -r path; do
     -- . ':(exclude)**/*.lock' ':(exclude)**/*.freezed.dart' ':(exclude)**/*.g.dart' 2>/dev/null \
     | awk '$1 != "-" && $2 != "-" { s += $1 + $2 } END { print s + 0 }' || echo 0)"
   case "$diff_lines" in (''|*[!0-9]*) diff_lines=0 ;; esac
-  FACTS="$(echo "$FACTS" | jq \
+  jq -nc \
     --arg path "$path" --arg branch "$branch" \
     --argjson alive "$alive" --argjson hasq "$has_q" \
     --argjson complete "$task_complete" --argjson haspr "$has_pr" \
@@ -87,13 +96,16 @@ while read -r path; do
     --argjson difflines "$diff_lines" --argjson escalated "$conflict_escalated" \
     --argjson prmerged "$pr_merged" \
     --argjson hbage "$hb_age" --argjson laststep "$last_step" --argjson exitreason "$exit_reason" \
-    '. += [{path:$path, branch:$branch, facts:{
+    '{path:$path, branch:$branch, facts:{
         process_alive:$alive, has_question_md:$hasq, task_complete:$complete,
         has_open_pr:$haspr, pr_merged:$prmerged, restart_count:$restart,
         task_md_present:$present, diff_changed_lines:$difflines,
         conflict_escalated:$escalated, heartbeat_age_seconds:$hbage,
-        last_step:$laststep, exit_reason:$exitreason}}]')"
-done < <(git worktree list --porcelain | awk '/^worktree /{print $2}')
+        last_step:$laststep, exit_reason:$exitreason}}'
+done < <(git worktree list --porcelain \
+  | awk '/^worktree /{if(p!="")print p"\t"b; p=substr($0,10); b="HEAD"}
+         /^branch refs\/heads\//{b=substr($0,19)}
+         END{if(p!="")print p"\t"b}') | jq -sc .)"
 
 # Derive ownership + issue from the registry here (paths passed as argv, never
 # interpolated into a literal), then assemble the survey.
