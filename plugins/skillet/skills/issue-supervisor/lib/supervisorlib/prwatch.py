@@ -10,11 +10,30 @@ The de-dup levers, one per signal:
   - comments  → a timestamp checkpoint (`comments_since`). `check-pr-comments`
     is already filtered with `--since <checkpoint>`, so by the time its envelope
     reaches here every unaddressed item is new-since-last-pass. We advance the
-    checkpoint to the newest comment we saw, so next cycle starts after it.
+    checkpoint past comments that carry no self-healing resolve state (top-level
+    PR comments and review summaries), so next cycle starts after them.
+
+    We deliberately do NOT advance the checkpoint past inline review threads:
+    those carry `isResolved` (the `review-thread` kind), which is a truer de-dup
+    lever than a timestamp. Advancing `comments_since` at dispatch time — before
+    the dispatched session has actually resolved the thread — is the bug in #57:
+    if the session crashes, exits early, takes the question hatch, or fails to
+    push, the timestamp has already moved past the thread and `--since` filters
+    it out forever. By leaving the checkpoint behind an unresolved thread, a
+    later pass re-surfaces it (self-healing); once the thread is genuinely
+    resolved it drops out of `unaddressed` on its own, so the happy path still
+    de-dups with no re-dispatch.
   - conflict  → an identity checkpoint (`conflict_oid`): the (base, head) commit
     pair the last conflict dispatch handled. A conflict re-triggers only when
     that pair changes (base or head moved), never on the unchanged same state.
 """
+
+# Envelope item kinds whose resolution is self-healing: `check-pr-comments`
+# re-derives their unaddressed state from a real signal (`isResolved`) every
+# pass, so the timestamp checkpoint must not advance past them (see module
+# docstring / #57). All other kinds (pr-comment, review-summary) have no resolve
+# state and rely on the timestamp checkpoint alone to de-dup.
+SELF_HEALING_KINDS = ("review-thread",)
 
 # mergeStateStatus values that mean "a merge conflict this skill should act on".
 # Mirrors resolve-conflicts' Step 1 table: DIRTY = real conflict, BEHIND = a
@@ -25,18 +44,34 @@ CONFLICT_STATES = ("DIRTY", "BEHIND")
 
 
 def _newest_comment_ts(envelope: dict) -> str | None:
-    """Latest `created_at` across the envelope's unaddressed items, or None.
+    """Latest `created_at` across the envelope's *de-dup-by-timestamp* items,
+    or None.
 
-    Used to advance the comments checkpoint. The envelope items carry
-    `created_at`; missing/empty ones are ignored so a malformed item can't
-    poison the max.
+    Used to advance the comments checkpoint. Only items WITHOUT a self-healing
+    resolve signal count (see `SELF_HEALING_KINDS`): advancing past an inline
+    review thread at dispatch time is #57's bug, so those are excluded and the
+    checkpoint stays behind them until they resolve on their own. The envelope
+    items carry `createdAt` (the field `check-pr-comments` emits); missing/empty
+    ones are ignored so a malformed item can't poison the max.
     """
     stamps = [
-        c["created_at"]
+        c["createdAt"]
         for c in envelope.get("unaddressed", [])
-        if c.get("created_at")
+        if c.get("createdAt") and c.get("kind") not in SELF_HEALING_KINDS
     ]
     return max(stamps) if stamps else None
+
+
+def _has_timestamp_dedup_items(envelope: dict) -> bool:
+    """True iff any unaddressed item de-dups by timestamp (i.e. is NOT a
+    self-healing kind). Used to distinguish two None results from
+    `_newest_comment_ts`: a malformed non-thread item (lacks `createdAt` → fall
+    back to `now`) versus an envelope whose only unaddressed items are inline
+    threads (deliberately no advance — the checkpoint must stay behind them)."""
+    return any(
+        c.get("kind") not in SELF_HEALING_KINDS
+        for c in envelope.get("unaddressed", [])
+    )
 
 
 def comments_need_dispatch(envelope: dict) -> bool:
@@ -77,18 +112,23 @@ def next_checkpoint(
     we skipped this cycle (e.g. the worktree was busy) must stay un-advanced so
     it is reconsidered next cycle rather than silently marked handled.
 
-    When dispatching on comments, advance `comments_since` to the newest item's
-    `created_at`. If no usable timestamp is found (a malformed envelope that
-    reports `unaddressed > 0` but whose items lack `created_at`), fall back to
-    `now` so the checkpoint still advances — otherwise the same comments would
-    re-dispatch on every idle pass forever. `now` must be supplied by the caller
-    (the shell layer stamps it) when comments dispatch; if it is also missing,
-    the checkpoint can't advance and the loop logs that as a degraded state.
+    When dispatching on comments, advance `comments_since` to the newest
+    *timestamp-de-dup* item's `created_at` (inline review threads are excluded —
+    they self-heal via `isResolved`; see the module docstring / #57). If such an
+    item exists but carries no usable timestamp (a malformed envelope), fall back
+    to `now` so the checkpoint still advances — otherwise that comment would
+    re-dispatch on every idle pass forever. But if the ONLY unaddressed items are
+    self-healing threads, we intentionally leave `comments_since` un-advanced so
+    an unresolved thread re-surfaces next pass rather than being consumed. `now`
+    must be supplied by the caller (the shell layer stamps it) when comments
+    dispatch; if it is needed but missing, the checkpoint can't advance and the
+    loop logs that as a degraded state.
     """
     prior = prior or {}
     out = dict(prior)
     if dispatch_comments:
-        advanced = _newest_comment_ts(envelope) or now
+        newest = _newest_comment_ts(envelope)
+        advanced = newest or (now if _has_timestamp_dedup_items(envelope) else None)
         if advanced:
             out["comments_since"] = advanced
     if dispatch_conflict:
