@@ -168,11 +168,11 @@ git rev-list --count origin/$BASE..HEAD
 
 If `0`, stop — there's nothing to PR.
 
-### 2a. Enforce the 400-line PR size limit
+### 2a. Enforce the 200-line PR size limit
 
-PRs over ~400 changed lines are hard to review and hide bugs. Before pushing or
+PRs over ~200 changed lines are hard to review and hide bugs. Before pushing or
 opening anything, count the lines this branch changes vs the base branch and
-**hard-block** if the total exceeds **400**.
+**hard-block** if the total exceeds **200**.
 
 "Lines changed" = added + deleted lines (the same metric GitHub shows as a PR's
 size), summed across all non-excluded files. Sum the last two columns of
@@ -190,10 +190,10 @@ echo "$CHANGED lines changed vs origin/$BASE"
 ```
 
 (Drop the `:(exclude)...` pathspecs if you want the raw, all-files count, but
-compare the **excluded** number against the 400 limit so a regenerated lockfile
+compare the **excluded** number against the 200 limit so a regenerated lockfile
 or `*.g.dart` doesn't block an otherwise-small PR.)
 
-If `CHANGED > 400`, **stop — do not push, do not open a PR.** Tell the user (or,
+If `CHANGED > 200`, **stop — do not push, do not open a PR.** Tell the user (or,
 in non-interactive mode, write the reason to the session's progress log and exit
 cleanly) that the change is too large and must be split. Give concrete split
 guidance:
@@ -201,8 +201,11 @@ guidance:
 - Identify logical chunks from `git diff --stat origin/$BASE..HEAD` — group by
   directory, feature, or layer (e.g. data model vs API vs UI; refactor vs new
   behavior).
-- Land each chunk as its own branch + PR, smallest/most-foundational first, so
-  later PRs stack on merged work.
+- Prefer a **stack**: land each chunk as its own branch + PR, smallest/most-
+  foundational first, with each later branch cut from the one before it and its
+  PR based on that branch (`gh pr create --base <previous-branch>`), not on
+  `$BASE`. Each PR then shows only its own ≤200-line slice, and review doesn't
+  wait on the earlier PRs merging.
 - Pure mechanical churn (renames, formatting, generated files) belongs in its own
   PR separate from behavioral changes, so reviewers can skim it.
 - If the work genuinely cannot be decomposed (e.g. one large generated file or an
