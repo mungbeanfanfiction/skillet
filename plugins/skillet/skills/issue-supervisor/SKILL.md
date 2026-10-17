@@ -59,14 +59,14 @@ NEVER touch worktrees with `"owned": false` (state `foreign`) — list them in t
 report's FYI, nothing more.
 
 **Oversize-diff flag.** The survey marks any owned, pre-PR worktree whose diff has
-grown past the 400-line cap (added + deleted vs base, lockfiles/generated files
+grown past the 200-line cap (added + deleted vs base, lockfiles/generated files
 excluded) with `"oversize_diff": true` and a `diff_changed_lines` count. `open-pr`
-hard-blocks PRs over 400 lines, so flag these before they get there: surface them
+hard-blocks PRs over 200 lines, so flag these before they get there: surface them
 in the step-5 report (e.g. `oversize: #56 (612 lines) — needs split`) and let the
 session split the work into smaller, logically focused PRs. Do NOT restart or
 otherwise touch the worktree on this flag alone — it is advisory and independent
 of the state classification; a `working` session may already be planning the
-split (every dispatch carries the ≤400-line constraint, see step 4).
+split (every dispatch carries the ≤200-line constraint, see step 4).
 
 **Heartbeats (stale-session detection).** `kill -0` on `session.pid` proves a process
 exists, not that it is progressing — a wedged session would otherwise report `working`
@@ -137,7 +137,7 @@ next item:
 - **Label queue:** lowest `eligible_issues` number. Fetch the body
   (`gh issue view <n>`), judge scope.
 - **File queue (`--file`):** next unchecked `- [ ]` item.
-Every dispatched session's prompt carries an explicit **≤400-line-per-PR
+Every dispatched session's prompt carries an explicit **≤200-line-per-PR
 constraint** (added by `supervisorlib.spawn`), with guidance to split larger work
 into separate, logically focused PRs. The same prompt also tells sessions to keep
 **imports at the top of each file** (never inside functions) and to treat a

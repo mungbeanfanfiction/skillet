@@ -83,7 +83,7 @@ def _facts(**over):
     return base
 
 
-def test_owned_pre_pr_worktree_over_400_lines_is_flagged_oversize():
+def test_owned_pre_pr_worktree_over_200_lines_is_flagged_oversize():
     worktree_facts = [
         {"issue": 8, "path": "/wt/8", "branch": "auto-8", "owned": True,
          "facts": _facts(diff_changed_lines=612)},
@@ -94,10 +94,10 @@ def test_owned_pre_pr_worktree_over_400_lines_is_flagged_oversize():
     assert w["diff_changed_lines"] == 612
 
 
-def test_worktree_at_or_under_400_lines_is_not_flagged():
+def test_worktree_at_or_under_200_lines_is_not_flagged():
     worktree_facts = [
         {"issue": 9, "path": "/wt/9", "branch": "auto-9", "owned": True,
-         "facts": _facts(diff_changed_lines=400)},
+         "facts": _facts(diff_changed_lines=200)},
     ]
     result = survey.assemble(worktree_facts=worktree_facts, eligible_issues=[])
     assert "oversize_diff" not in result["worktrees"][0]

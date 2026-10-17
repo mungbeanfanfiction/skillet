@@ -28,12 +28,12 @@ def test_review_step_uses_a_subagent_not_a_slash_command():
     assert "review-fix" not in p
 
 
-def test_dispatch_prompt_carries_the_400_line_pr_constraint():
-    # every dispatched session must be told to keep each PR under 400 lines and to
+def test_dispatch_prompt_carries_the_200_line_pr_constraint():
+    # every dispatched session must be told to keep each PR under 200 lines and to
     # split larger work — open-pr hard-blocks oversized PRs, so the agent has to
     # plan for it up front.
     p = spawn.dispatch_prompt(issue=1)
-    assert "400" in p
+    assert "200" in p
     assert "split" in p.lower()
 
 

@@ -44,14 +44,15 @@ Run this pipeline for the task, logging each completed stage to the
    escape hatch below. If there is no safe guess and it is not a design question,
    stop and write the reason to the `## Progress log`.
 3. work — implement the change. Keep the changeset SMALL: a single PR must change
-   no more than 400 lines (added + deleted) vs the base branch. Check your size as
+   no more than 200 lines (added + deleted) vs the base branch. Check your size as
    you go with `git diff --numstat origin/<base>...HEAD -- . ':(exclude)**/*.lock' ':(exclude)**/*.freezed.dart' ':(exclude)**/*.g.dart' | awk '$1!="-"&&$2!="-"{s+=$1+$2}END{print s+0}'`
    (same excludes open-pr's gate uses, so your self-check matches the number that blocks you).
-   If the work cannot fit under 400 lines, split it into separate, logically
+   If the work cannot fit under 200 lines, split it into separate, logically
    focused PRs (e.g. data model, then API, then UI; or refactor separately from
-   new behavior) — land the smallest/most-foundational chunk first and follow up
-   with the rest, rather than shipping one oversized PR. The `open-pr` skill
-   HARD-BLOCKS PRs over 400 lines, so plan for this up front.
+   new behavior) as a STACK — the smallest/most-foundational chunk first, each
+   later branch cut from the previous one with its PR based on that branch —
+   rather than shipping one oversized PR. The `open-pr` skill
+   HARD-BLOCKS PRs over 200 lines, so plan for this up front.
    IMPORTS: put every import at the TOP of its file, not inside a function or
    method. If a top-level import would create a circular dependency, that is a
    signal to extract the shared code into a separate module (e.g. a `utils`

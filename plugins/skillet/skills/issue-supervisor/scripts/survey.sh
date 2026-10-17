@@ -71,7 +71,7 @@ while read -r path; do
     case "$merged_count" in (''|*[!0-9]*) merged_count=0 ;; esac
     if [ "$merged_count" -gt 0 ]; then pr_merged=true; fi
   fi
-  # Changed lines vs base (added + deleted) — the metric open-pr caps at 400.
+  # Changed lines vs base (added + deleted) — the metric open-pr caps at 200.
   # Exclude lockfiles/generated files; any git failure → 0 so survey never aborts.
   # `|| echo 0`: an unresolvable origin/<base> (fresh/unfetched worktree) makes git
   # exit 128; under pipefail that would trip the ERR trap and abort the survey.

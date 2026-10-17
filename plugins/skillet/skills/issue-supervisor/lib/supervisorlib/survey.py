@@ -6,7 +6,7 @@ from supervisorlib.state import WorktreeState
 # PRs over this many changed lines (added + deleted) are blocked by open-pr; the
 # supervisor flags owned worktrees that cross it pre-PR so it can prompt a split
 # before the work balloons further. Keep in sync with open-pr's cap.
-PR_LINE_LIMIT = 400
+PR_LINE_LIMIT = 200
 
 
 def _oversize_diff(facts: dict) -> bool:
@@ -45,7 +45,7 @@ def assemble(*, worktree_facts: list, eligible_issues: list, cap: int = None) ->
         # than restart it or escalate it to a human.
         if st is WorktreeState.MERGED:
             entry["cleanup_candidate"] = True
-        # Flag owned worktrees whose pre-PR diff has outgrown the 400-line cap so
+        # Flag owned worktrees whose pre-PR diff has outgrown the 200-line cap so
         # the supervisor can prompt a split before they reach open-pr (which would
         # hard-block them). Foreign worktrees are never flagged.
         if w["owned"] and _oversize_diff(w["facts"]):

@@ -66,7 +66,7 @@ All work from here happens inside the new worktree.
   lint — whatever `package.json`/`Makefile`/CI config shows) before treating
   it as done.
 - Keep the change scoped to the issue. If it's clearly too large for one PR
-  (see `open-pr`'s 400-line guidance), say so in the report rather than
+  (see `open-pr`'s 200-line guidance), say so in the report rather than
   quietly ballooning the diff.
 - Commit with a message following this repo's convention (check recent `git
   log`), e.g. `type(scope): <n> - <description>`, and include `Closes #<n>`
