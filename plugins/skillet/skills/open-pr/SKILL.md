@@ -44,6 +44,18 @@ it never opens, pushes, or commits.
 If `check-verbosity` reports clean (or the skill is unavailable), continue
 silently.
 
+### 0b. Deslop gate
+
+Run `deslop --diff` to check the prose the branch adds (docs, SKILL.md,
+comments) for AI tells. It reports only; without `--fix` it changes nothing.
+
+- **Interactive:** show the findings and ask whether to fix them first
+  (re-run with `--fix` and commit the result) or go ahead as-is.
+- **Non-interactive:** include the summary in the output. Don't block and don't
+  apply `--fix`.
+
+If it reports clean (or the skill is unavailable), continue silently.
+
 ### 0a. Formatting gate (Prettier)
 
 Before opening the PR, make sure the branch's changed files are Prettier-clean
