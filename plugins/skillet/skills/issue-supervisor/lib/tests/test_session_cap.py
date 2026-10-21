@@ -143,3 +143,62 @@ def test_restart_reaps_via_the_shared_helper():
     src = (SCRIPTS / "restart.sh").read_text()
     assert "reap_pid" in src
     assert 'kill -TERM "$OLD_PID"' not in src  # the old bare-pid reap must be gone
+
+
+def test_session_niceness_defaults_are_set_and_overridable():
+    # Dispatched sessions must default to reduced CPU priority (#91), overridable, with `-`
+    # not `:-` so an explicit empty override survives to the disable branch (same contract as
+    # the wall-clock cap). ionice has its own knob for the Linux-only IO class.
+    assert 'SKILLET_SESSION_NICE="${SKILLET_SESSION_NICE-10}"' in COMMON
+    assert 'SKILLET_SESSION_IONICE_CLASS="${SKILLET_SESSION_IONICE_CLASS-3}"' in COMMON
+
+
+def test_spawn_prefix_degrades_gracefully_when_a_tool_is_absent():
+    # macOS has no ionice (and a stripped host may lack nice too): each tool is gated on
+    # `command -v` so an absent one is silently dropped, never a hard failure. The prefix is
+    # an array so an empty one expands to nothing — a plain, unprioritised spawn.
+    body = COMMON[COMMON.index("spawn_prefix()"):COMMON.index("spawn_capped_session()")]
+    assert "command -v nice" in body
+    assert "command -v ionice" in body
+    assert "SPAWN_PREFIX=()" in body  # array, so an empty prefix vanishes rather than becoming ""
+
+
+def test_ionice_class_is_range_checked_not_just_numeric():
+    # A numeric-but-out-of-range class (e.g. 5, or 0) makes `ionice` ITSELF exit non-zero,
+    # and since it runs inside the nohup exec that would abort the WHOLE spawn — unlike an
+    # absent tool, which drops gracefully. So the class must be validated to 1|2|3, dropping
+    # a bad override the same way an absent binary is dropped.
+    body = COMMON[COMMON.index("spawn_prefix()"):COMMON.index("spawn_capped_session()")]
+    assert 'case "$c" in 1|2|3)' in body
+    # The old numeric-only guard (which let 0/5/… through) must be gone from the ionice arm.
+    assert 'command -v ionice >/dev/null 2>&1 && SPAWN_PREFIX+=(ionice' in body
+    assert "case \"$c\" in ''|*[!0-9]*)" not in body
+
+
+def test_spawn_prefix_cannot_abort_the_caller_under_set_e():
+    # common.sh runs `set -e`, and spawn_prefix is called as a bare statement. Its last `case`
+    # arm ends in `command -v ionice && …`, which is FALSE whenever ionice is absent (always on
+    # macOS) — without an explicit success the function would return non-zero and abort every
+    # dispatch. It must end `return 0`.
+    body = COMMON[COMMON.index("spawn_prefix()"):COMMON.index("spawn_capped_session()")]
+    assert "return 0" in body
+
+
+def test_empty_prefix_array_expansion_is_bash_3_2_safe():
+    # macOS ships /bin/bash 3.2, where `"${arr[@]}"` on an EMPTY array under `set -u` is an
+    # "unbound variable" error — it would break dispatch on the exact platform this targets.
+    # The spawn must use the `${arr[@]+"${arr[@]}"}` idiom, which is empty-safe on 3.2 and 5.x.
+    assert '"${SPAWN_PREFIX[@]+"${SPAWN_PREFIX[@]}"}"' in COMMON
+    # The naked form must not be what reaches the spawn line.
+    assert 'nohup "${SPAWN_PREFIX[@]}"' not in COMMON
+
+
+def test_niceness_prefix_preserves_pid_and_group_for_the_reaper():
+    # nice/ionice EXEC the target in place, so the claude tree keeps the pid written to
+    # session.pid and the pgid from `set -m` — the reaper and wall-clock cap are unaffected.
+    # Guard that the prefix sits INSIDE the same `nohup … &` job whose $! we capture, so the
+    # captured pid is still the (prioritised) session leader, not a wrapper that exits first.
+    body = COMMON[COMMON.index("spawn_capped_session()"):]
+    spawn_line = next(l for l in body.splitlines() if l.strip().startswith("nohup "))
+    assert "SPAWN_PREFIX" in spawn_line and '"$claude"' in spawn_line
+    assert body.index("pid=$!") > body.index("SPAWN_PREFIX[@]")  # $! captures the prefixed job
