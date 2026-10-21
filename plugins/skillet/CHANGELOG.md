@@ -1,3 +1,9 @@
+## 0.41.0 (2026-10-21)
+
+### Features
+
+* **review-pr:** add skill for concise Conventional Comments PR reviews (#127) ([12be789](https://github.com/mungbeanfanfiction/skillet/commit/12be7894de5c898f91cac764971e7bfd7479dc6a))
+
 ## 0.40.0 (2026-10-17)
 
 ### Features

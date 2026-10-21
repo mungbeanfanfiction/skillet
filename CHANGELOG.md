@@ -1,3 +1,11 @@
+## [0.42.0](https://github.com/mungbeanfanfiction/skillet/compare/v0.41.0...v0.42.0) (2026-10-21)
+
+Plugin versions: `skillet@0.41.0`, `vault@0.1.2` (unchanged)
+
+### Features
+
+* **review-pr:** add skill for concise Conventional Comments PR reviews ([#127](https://github.com/mungbeanfanfiction/skillet/issues/127)) ([12be789](https://github.com/mungbeanfanfiction/skillet/commit/12be7894de5c898f91cac764971e7bfd7479dc6a))
+
 ## [0.41.0](https://github.com/mungbeanfanfiction/skillet/compare/v0.40.1...v0.41.0) (2026-10-17)
 
 Plugin versions: `skillet@0.40.0`, `vault@0.1.2` (unchanged)
