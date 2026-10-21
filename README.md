@@ -34,6 +34,7 @@ ln -s /path/to/skillet/plugins/skillet ~/.cursor/plugins/local/skillet
 | `/create-worktree` | Create a git worktree for a branch or GitHub issue, with env files symlinked. |
 | `/delete-worktree` | Safely remove a worktree (checks for uncommitted/unpushed work). |
 | `/cleanup-worktrees` | Survey all worktrees and bulk-remove ones whose branches are merged or whose PRs are closed. |
+| `/review-pr` | Review a PR, verify each finding, and post one review of short [Conventional Comments](https://conventionalcomments.org/) (`issue (blocking): …`). A lint script checks every comment's label and length before posting. Never approves or requests changes. |
 | `/review-fix` | Review a PR with `/code-review` and auto-fix high/medium findings, looping until clean; unsafe findings become PR comments. |
 | `/resolve-conflicts` | Bring a PR up to date with its base and auto-resolve only safe conflicts (lock/generated/import-only), leaving the branch pushable; escalate cleanly when a conflict needs human judgment. |
 | `/explore-issue` | Deep-dive one GitHub issue: worktree off main, parallel Explore agents, findings spec, draft PR, and an issue comment. Routed by the `explore` label. |
@@ -103,6 +104,9 @@ plugins/skillet/
     ├── delete-worktree/SKILL.md
     ├── cleanup-worktrees/SKILL.md
     ├── review-fix/SKILL.md
+    ├── review-pr/
+    │   ├── SKILL.md
+    │   └── scripts/lint-comments.sh
     ├── resolve-conflicts/SKILL.md
     ├── explore-issue/SKILL.md
     ├── create-issue/SKILL.md
