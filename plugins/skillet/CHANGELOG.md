@@ -1,3 +1,9 @@
+## 0.43.0 (2026-11-06)
+
+### Features
+
+* **check-slop:** add skill to review diffs for duplication and missed reuse (#128) ([119d888](https://github.com/mungbeanfanfiction/skillet/commit/119d888334e3414bf0dec7a8d6f8f636cd7147a7))
+
 ## 0.42.0 (2026-11-06)
 
 ### Features

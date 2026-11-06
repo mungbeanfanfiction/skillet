@@ -1,3 +1,11 @@
+## [0.44.0](https://github.com/mungbeanfanfiction/skillet/compare/v0.43.0...v0.44.0) (2026-11-06)
+
+Plugin versions: `skillet@0.43.0`, `vault@0.1.2` (unchanged)
+
+### Features
+
+* **check-slop:** add skill to review diffs for duplication and missed reuse ([#128](https://github.com/mungbeanfanfiction/skillet/issues/128)) ([119d888](https://github.com/mungbeanfanfiction/skillet/commit/119d888334e3414bf0dec7a8d6f8f636cd7147a7))
+
 ## [0.43.0](https://github.com/mungbeanfanfiction/skillet/compare/v0.42.0...v0.43.0) (2026-11-06)
 
 Plugin versions: `skillet@0.42.0`, `vault@0.1.2` (unchanged)
