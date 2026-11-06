@@ -44,6 +44,18 @@ it never opens, pushes, or commits.
 If `check-verbosity` reports clean (or the skill is unavailable), continue
 silently.
 
+### 0b. Deslop gate
+
+Run `deslop --diff` to check the prose the branch adds (docs, SKILL.md,
+comments) for AI tells. It reports only; without `--fix` it changes nothing.
+
+- **Interactive:** show the findings and ask whether to fix them first
+  (re-run with `--fix` and commit the result) or go ahead as-is.
+- **Non-interactive:** include the summary in the output. Don't block and don't
+  apply `--fix`.
+
+If it reports clean (or the skill is unavailable), continue silently.
+
 ### 0a. Formatting gate (Prettier)
 
 Before opening the PR, make sure the branch's changed files are Prettier-clean
@@ -347,6 +359,22 @@ no "See issue") and do not let `check-verbosity` (step 0) or any later
 trimming remove it — it is not part of the freeform content those checks
 target.
 
+### 6b. Deslop the description
+
+Run the filled body through the `deslop` skill (no argument — it works on the
+pending draft) and apply its rewrites before the preview. This is the PR's own
+prose, so apply it in both interactive and non-interactive mode.
+
+Only the prose you wrote in step 6 is in scope. Leave alone:
+
+- Template headings, checkboxes, and HTML comments
+- `TODO` placeholders and `None` defaults
+- The `Closes #<n>` line from step 6a
+- Code blocks, file paths, and commit subjects quoted from `git log`
+
+If `deslop` is unavailable, follow its rules directly: no restating the title,
+no closing summary, no hedges or filler vocabulary, no bold on non-terms.
+
 ### 7. Derive the PR title
 
 Use the convention: **`type(plugin): ticket - description`**
@@ -374,7 +402,7 @@ Examples:
 - No plugin, ticket: `fix: 17 - correct base-branch detection`
 - Neither: `docs: clarify PR template fallback`
 
-Keep it under 70 characters. No trailing period.
+Keep it under 70 characters. No trailing period. Apply the same `deslop` vocabulary rules from step 6b — no "leverage", "streamline", "robust", etc.
 
 ### 8. Preview and confirm
 
