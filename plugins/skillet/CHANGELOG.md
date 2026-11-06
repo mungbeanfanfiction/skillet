@@ -1,3 +1,9 @@
+## 0.42.0 (2026-11-06)
+
+### Features
+
+* **skillet:** deslop PR descriptions in open-pr (#126) ([e789c60](https://github.com/mungbeanfanfiction/skillet/commit/e789c60ff88486b5e19bf78a25ad047ca2c287aa))
+
 ## 0.41.0 (2026-10-21)
 
 ### Features

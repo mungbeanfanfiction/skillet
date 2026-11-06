@@ -1,3 +1,11 @@
+## [0.43.0](https://github.com/mungbeanfanfiction/skillet/compare/v0.42.0...v0.43.0) (2026-11-06)
+
+Plugin versions: `skillet@0.42.0`, `vault@0.1.2` (unchanged)
+
+### Features
+
+* **skillet:** deslop PR descriptions in open-pr ([#126](https://github.com/mungbeanfanfiction/skillet/issues/126)) ([e789c60](https://github.com/mungbeanfanfiction/skillet/commit/e789c60ff88486b5e19bf78a25ad047ca2c287aa))
+
 ## [0.42.0](https://github.com/mungbeanfanfiction/skillet/compare/v0.41.0...v0.42.0) (2026-10-21)
 
 Plugin versions: `skillet@0.41.0`, `vault@0.1.2` (unchanged)
