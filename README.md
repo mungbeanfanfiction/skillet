@@ -29,7 +29,8 @@ ln -s /path/to/skillet/plugins/skillet ~/.cursor/plugins/local/skillet
 
 | Skill | What it does |
 |---|---|
-| `/open-pr` | Open a draft PR using the repo's PR template, prefilled from the linked issue or conversation context. Runs `/check-verbosity` first as a pre-PR gate. |
+| `/commit` | Stage and commit with a Conventional Commit message, running `/check-slop` on the staged diff first (opt out with `--no-slop-check`). Refuses to commit on main; never pushes. |
+| `/open-pr` | Open a draft PR using the repo's PR template, prefilled from the linked issue or conversation context. Runs `/check-verbosity` and `/check-slop` first as pre-PR gates. |
 | `/check-verbosity` | Diff the branch vs base and flag verbosity to trim before a PR — redundant comments, leftover debug logs, dead scaffolding, wordy prose. Read-only by default; `--fix` applies safe trims. Never opens/pushes. |
 | `/check-slop` | Review a diff for slop: code duplicated within the change or against the codebase, helpers and fixtures it should have reused, test setup that belongs in a fixture, defensive noise, one-caller abstractions. Searches outside the diff for existing equivalents. Reports by default; `--fix` applies drop-in swaps. |
 | `/create-worktree` | Create a git worktree for a branch or GitHub issue, with env files symlinked. |
@@ -99,6 +100,7 @@ plugins/skillet/
 │   ├── block-slop.sh             # AI-prose guard
 │   └── worktree-status.sh        # writes STATUS.md per worktree
 └── skills/
+    ├── commit/SKILL.md
     ├── open-pr/SKILL.md
     ├── check-verbosity/SKILL.md
     ├── check-slop/SKILL.md
