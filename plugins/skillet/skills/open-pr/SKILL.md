@@ -44,7 +44,21 @@ it never opens, pushes, or commits.
 If `check-verbosity` reports clean (or the skill is unavailable), continue
 silently.
 
-### 0a. Formatting gate (Prettier)
+### 0a. Slop gate
+
+Run `check-slop --branch <base>` to catch duplicated code and helpers or
+fixtures the branch should have reused. `/commit` runs it per commit, but
+commits made some other way skip it, and duplication across commits only shows
+up at the branch level.
+
+- **Interactive:** show the findings and ask whether to fix them first (offer
+  `check-slop --branch <base> --fix` for the drop-in swaps) or proceed.
+- **Non-interactive:** include the summary in the output. Don't block and don't
+  apply `--fix`.
+
+If it reports clean (or the skill is unavailable), continue silently.
+
+### 0b. Formatting gate (Prettier)
 
 Before opening the PR, make sure the branch's changed files are Prettier-clean
 so the PR doesn't land a formatting-only CI failure. Unlike the verbosity gate,
@@ -129,7 +143,8 @@ were all outside `$CHANGED_FILES`), skip the commit.
   was reformatted (e.g. `Prettier formatted 3 files (src/a.ts, src/b.ts,
   src/c.tsx) — committed as "style: apply prettier formatting"`).
 - **Non-interactive:** apply and commit the same way, silently, and include the
-  summary in the output log alongside the verbosity-gate summary. Do not block.
+  summary in the output log alongside the verbosity- and slop-gate summaries.
+  Do not block.
 
 If Prettier itself errors (e.g. a syntax error in a changed file it can't
 parse), report the error and continue — do not hard-block PR creation on a
