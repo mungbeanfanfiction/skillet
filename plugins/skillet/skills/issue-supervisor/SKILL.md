@@ -61,9 +61,10 @@ report's FYI, nothing more.
 **Oversize-diff flag.** The survey marks any owned, pre-PR worktree whose diff has
 grown past the 200-line cap (added + deleted vs base, lockfiles/generated files
 excluded) with `"oversize_diff": true` and a `diff_changed_lines` count. `open-pr`
-hard-blocks PRs over 200 lines, so flag these before they get there: surface them
-in the step-5 report (e.g. `oversize: #56 (612 lines) — needs split`) and let the
-session split the work into smaller, logically focused PRs. Do NOT restart or
+hard-blocks PRs over 250 lines (200 is the target; up to 250 is allowed when
+splitting or trimming would cost quality), so flag these before they get there:
+surface them in the step-5 report (e.g. `oversize: #56 (612 lines) — needs split`)
+and let the session split the work into smaller, logically focused PRs. Do NOT restart or
 otherwise touch the worktree on this flag alone — it is advisory and independent
 of the state classification; a `working` session may already be planning the
 split (every dispatch carries the ≤200-line constraint, see step 4).
@@ -139,10 +140,12 @@ next item:
 - **File queue (`--file`):** next unchecked `- [ ]` item.
 Every dispatched session's prompt carries an explicit **≤200-line-per-PR
 constraint** (added by `supervisorlib.spawn`), with guidance to split larger work
-into separate, logically focused PRs. The same prompt also tells sessions to keep
+into separate, logically focused PRs, and a **quality-first** rule: never shrink
+the diff with worse code (no reusing a schema built for another concept, no
+thinned tests), going slightly over instead. The same prompt also tells sessions to keep
 **imports at the top of each file** (never inside functions) and to treat a
 would-be circular import as a signal to extract shared code into a module rather
-than hide the import. You don't add either per-dispatch — they ship in the
+than hide the import. You don't add any of these per-dispatch — they ship in the
 pipeline prompt automatically.
 
 Run the **dispatch-time triage gate**:

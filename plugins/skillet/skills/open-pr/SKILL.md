@@ -180,11 +180,25 @@ git rev-list --count origin/$BASE..HEAD
 
 If `0`, stop — there's nothing to PR.
 
-### 2a. Enforce the 200-line PR size limit
+### 2a. Enforce the PR size limit (200 target, 250 hard block)
 
 PRs over ~200 changed lines are hard to review and hide bugs. Before pushing or
-opening anything, count the lines this branch changes vs the base branch and
-**hard-block** if the total exceeds **200**.
+opening anything, count the lines this branch changes vs the base branch. The
+target is **200**; the hard block is at **250**.
+
+**Quality outranks the line count.** The limit exists to get good code reviewed
+well, so never buy lines back with worse code. These are not ways to fit:
+
+- Reusing a schema, type, model, serializer, or template built for a different
+  concept (e.g. a member-promotion email riding on another email's schema
+  because it has similar fields). Give the new concept its own definition.
+- Dropping or thinning tests, validation, or error handling.
+- Cramming logic onto fewer lines, cryptic names, or deleting comments that
+  carry the *why*.
+- Leaving a known follow-up fix out of the PR that needs it.
+
+Split along real seams instead. When no clean seam exists and fitting would take
+one of the shortcuts above, going slightly over is the right call.
 
 "Lines changed" = added + deleted lines (the same metric GitHub shows as a PR's
 size), summed across all non-excluded files. Sum the last two columns of
@@ -202,10 +216,18 @@ echo "$CHANGED lines changed vs origin/$BASE"
 ```
 
 (Drop the `:(exclude)...` pathspecs if you want the raw, all-files count, but
-compare the **excluded** number against the 200 limit so a regenerated lockfile
+compare the **excluded** number against the limits so a regenerated lockfile
 or `*.g.dart` doesn't block an otherwise-small PR.)
 
-If `CHANGED > 200`, **stop — do not push, do not open a PR.** Tell the user (or,
+- `CHANGED <= 200` → proceed.
+- `200 < CHANGED <= 250` → proceed only if there's no clean seam to split along
+  and fitting would mean one of the shortcuts above. Add a one-line `Size:` note
+  to the PR body saying why the extra lines stay (e.g. `Size: 231 lines — the
+  promotion email gets its own schema instead of reusing the invite one`). If a
+  clean split exists, split instead.
+- `CHANGED > 250` → block, below.
+
+If `CHANGED > 250`, **stop — do not push, do not open a PR.** Tell the user (or,
 in non-interactive mode, write the reason to the session's progress log and exit
 cleanly) that the change is too large and must be split. Give concrete split
 guidance:
@@ -224,7 +246,7 @@ guidance:
   atomic migration), say so explicitly and let the user decide to override —
   never silently open an oversized PR.
 
-This limit is intentionally hard: do not open the PR and then warn. Block first.
+The 250 block is intentionally hard: do not open the PR and then warn. Block first.
 
 ### 2b. Run scoped tests on changed files
 

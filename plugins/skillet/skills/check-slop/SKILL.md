@@ -106,6 +106,12 @@ On the added lines, look for:
 - **Convention drift.** Naming, error handling, logging, imports, or file layout
   that differ from the neighboring code. A new `utils.ts` next to an existing
   `helpers.ts`.
+- **False reuse.** The inverse of duplication: a schema, type, model,
+  serializer, or template built for one concept bent to carry a different one
+  because the fields look alike (a member-promotion email riding on the invite
+  email's schema, a `UserCreate` model reused for an admin update). Flag it and
+  suggest a dedicated definition. Often a sign the diff was squeezed to fit a
+  size limit.
 - **Phantom APIs.** Calls to functions, flags, or options that don't exist in
   the version this repo uses. Grep for the definition or check the installed
   package before flagging.
@@ -117,8 +123,9 @@ On the added lines, look for:
 Open every existing helper or fixture you plan to point at and confirm it's
 equivalent: same inputs, same output, same side effects, importable from where
 the new code lives. If it differs in a way that matters, drop the finding or
-say what would need to change. A wrong "just use X" costs more than a missed
-duplicate, and a noisy check gets ignored.
+say what would need to change. Same shape isn't same concept: if the existing
+thing models something else, reusing it is false reuse, not a fix. A wrong
+"just use X" costs more than a missed duplicate, and a noisy check gets ignored.
 
 Mark a finding `drop_in: true` only when the fix is a mechanical swap: replace
 the new code with a call to the existing helper or fixture, and delete the new
