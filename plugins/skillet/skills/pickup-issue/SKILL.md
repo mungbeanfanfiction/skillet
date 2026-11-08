@@ -67,7 +67,9 @@ All work from here happens inside the new worktree.
   it as done.
 - Keep the change scoped to the issue. If it's clearly too large for one PR
   (see `open-pr`'s 200-line guidance), say so in the report rather than
-  quietly ballooning the diff.
+  quietly ballooning the diff. Never fit the limit with worse code — e.g.
+  reusing a schema built for a different concept, or thinning tests. Going
+  slightly over beats that.
 - Commit with a message following this repo's convention (check recent `git
   log`), e.g. `type(scope): <n> - <description>`, and include `Closes #<n>`
   in the body. Never add a `Co-Authored-By` trailer (repo rule).

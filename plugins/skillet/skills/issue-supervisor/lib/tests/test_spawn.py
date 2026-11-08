@@ -37,6 +37,17 @@ def test_dispatch_prompt_carries_the_200_line_pr_constraint():
     assert "split" in p.lower()
 
 
+def test_dispatch_prompt_puts_quality_over_the_line_limit():
+    # the line limit must never be met with worse code: sessions are told not to
+    # reuse a schema built for another concept, and that going slightly over
+    # beats bad code.
+    low = spawn.dispatch_prompt(issue=1).lower()
+    assert "quality comes first" in low
+    assert "schema" in low
+    assert "250" in low
+    assert "quality comes first" in spawn.restart_prompt(issue=1).lower()
+
+
 def test_dispatch_prompt_tells_sessions_to_put_imports_at_file_tops():
     # dispatched sessions must place imports at the top of the file, not inside
     # functions; a would-be circular import is a signal to extract shared code
