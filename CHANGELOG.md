@@ -1,3 +1,11 @@
+## [0.45.0](https://github.com/mungbeanfanfiction/skillet/compare/v0.44.0...v0.45.0) (2026-11-08)
+
+Plugin versions: `skillet@0.44.0`, `vault@0.1.2` (unchanged)
+
+### Features
+
+* **skillet:** put code quality ahead of the PR line limit ([#130](https://github.com/mungbeanfanfiction/skillet/issues/130)) ([bea84d3](https://github.com/mungbeanfanfiction/skillet/commit/bea84d3c52d02484971caddc41dec61e6892db4b))
+
 ## [0.44.0](https://github.com/mungbeanfanfiction/skillet/compare/v0.43.0...v0.44.0) (2026-11-06)
 
 Plugin versions: `skillet@0.43.0`, `vault@0.1.2` (unchanged)

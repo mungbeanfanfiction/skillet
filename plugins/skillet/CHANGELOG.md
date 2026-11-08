@@ -1,3 +1,9 @@
+## 0.44.0 (2026-11-08)
+
+### Features
+
+* **skillet:** put code quality ahead of the PR line limit (#130) ([bea84d3](https://github.com/mungbeanfanfiction/skillet/commit/bea84d3c52d02484971caddc41dec61e6892db4b))
+
 ## 0.43.0 (2026-11-06)
 
 ### Features
